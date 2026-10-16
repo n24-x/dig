@@ -1,6 +1,10 @@
 package dig
 
-import "reflect"
+import (
+	"reflect"
+
+	"github.com/n24-x/dig/internal/dot"
+)
 
 type providedObject struct {
 	Type   reflect.Type
@@ -32,4 +36,12 @@ func (po providedObject) Provides() []resourceKey {
 	}
 
 	return keys
+}
+
+func (po providedObject) DotResults() []*dot.Result {
+	var dotResults []*dot.Result
+	for _, f := range po.Fields {
+		dotResults = append(dotResults, f.Result.DotResults()...)
+	}
+	return dotResults
 }

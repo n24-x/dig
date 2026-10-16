@@ -13,3 +13,9 @@ type result interface {
 
 	DotResults() []*dot.Result
 }
+
+var (
+	_ result = (*valueResult)(nil)
+	_ result = (*providedObject)(nil)
+	_ result = (*valueResultGroup)(nil)
+)

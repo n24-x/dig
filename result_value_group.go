@@ -1,6 +1,10 @@
 package dig
 
-import "reflect"
+import (
+	"reflect"
+
+	"github.com/n24-x/dig/internal/dot"
+)
 
 // valueResultGroup is a value produced by a constructor that is part of a
 // result group.
@@ -33,4 +37,30 @@ func (rg valueResultGroup) Provides() []resourceKey {
 		})
 	}
 	return keys
+}
+
+func (rg valueResultGroup) DotResults() []*dot.Result {
+	dotResults := []*dot.Result{
+		{
+			Node: &dot.Node{
+				ValueType: rg.ValueType,
+				GroupName: rg.GroupName,
+			},
+		},
+	}
+
+	if len(rg.As) > 0 {
+		for _, typ := range rg.As {
+			dotResults = append(dotResults,
+				&dot.Result{
+					Node: &dot.Node{
+						ValueType: typ,
+						GroupName: rg.GroupName,
+					},
+				},
+			)
+		}
+	}
+
+	return dotResults
 }

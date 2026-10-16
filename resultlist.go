@@ -2,6 +2,8 @@ package dig
 
 import (
 	"reflect"
+
+	"github.com/n24-x/dig/internal/dot"
 )
 
 // resultList holds all values returned by the constructor as results.
@@ -31,4 +33,12 @@ func (rl resultList) Provides() []resourceKey {
 	}
 
 	return keys
+}
+
+func (rl resultList) DotResults() []*dot.Result {
+	var dotResults []*dot.Result
+	for _, r := range rl.Results {
+		dotResults = append(dotResults, r.DotResults()...)
+	}
+	return dotResults
 }
