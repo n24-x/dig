@@ -55,11 +55,11 @@ func newParamList(ctype reflect.Type) (paramList, error) {
 		ctype:  ctype,
 		Params: make([]param, numParameters),
 	}
-
-	for i := 0; i < numParameters; i++ {
-		p, err := newParam(ctype.In(i))
+	for i := range numParameters {
+		typ := ctype.In(i)
+		p, err := newParam(typ)
 		if err != nil {
-			return pl, newErrInvalidInput(fmt.Sprintf("bad argument %d", i+1), err)
+			return pl, newErrInvalidInput(fmt.Sprintf("bad argument %d(%v)", i+1, typ), err)
 		}
 		pl.Params[i] = p
 	}
