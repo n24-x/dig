@@ -53,10 +53,10 @@ func (po requiredObject) Requires() []resourceKey {
 	return keys
 }
 
-func (po requiredObject) DotParam() []*dot.Param {
+func (po requiredObject) DotParams() []*dot.Param {
 	var params []*dot.Param
 	for _, f := range po.Fields {
-		params = append(params, f.Param.DotParam()...)
+		params = append(params, f.Param.DotParams()...)
 	}
 	return params
 }

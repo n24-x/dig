@@ -1,6 +1,8 @@
 package dig
 
-import "reflect"
+import (
+	"reflect"
+)
 
 // resultList holds all values returned by the constructor as results.
 type resultList struct {
@@ -16,6 +18,8 @@ type resultList struct {
 
 var _ interface{ Provides() []resourceKey } = resultList{}
 
+// var _ interface{ DotResults() []*dot.Result } = resultList{}
+
 func (rl resultList) Provides() []resourceKey {
 	var keys []resourceKey
 	for _, idx := range rl.resultIndexes {
@@ -27,3 +31,5 @@ func (rl resultList) Provides() []resourceKey {
 
 	return keys
 }
+
+// func (rl resultList) DotResults() []*dot.Result { ... }

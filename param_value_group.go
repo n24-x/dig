@@ -48,7 +48,7 @@ func (pg valueParamGroup) Requires() []resourceKey {
 	}
 }
 
-func (pg valueParamGroup) DotParam() []*dot.Param {
+func (pg valueParamGroup) DotParams() []*dot.Param {
 	return []*dot.Param{
 		{
 			Node: &dot.Node{

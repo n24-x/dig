@@ -55,7 +55,7 @@ func (ps valueParam) Requires() []resourceKey {
 	}
 }
 
-func (ps valueParam) DotParam() []*dot.Param {
+func (ps valueParam) DotParams() []*dot.Param {
 	return []*dot.Param{
 		{
 			Node: &dot.Node{

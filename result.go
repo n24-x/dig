@@ -11,5 +11,5 @@ type result interface {
 	// TODO
 	// Extract(containerWriter, bool, reflect.Value)
 
-	DotResult() []*dot.Result
+	DotResults() []*dot.Result
 }

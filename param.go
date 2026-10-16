@@ -15,7 +15,7 @@ type param interface {
 	// TODO
 	// Build(containerStore) (reflect.Value, error)
 
-	DotParam() []*dot.Param
+	DotParams() []*dot.Param
 }
 
 var (
