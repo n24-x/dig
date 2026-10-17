@@ -14,10 +14,7 @@ type valueParam struct {
 	Optional  bool
 }
 
-// Func Guard
-var (
-	_ func(reflect.Type) valueParam = newValueParam
-)
+var _ func(reflect.Type) valueParam = newValueParam
 
 func (ps valueParam) String() string {
 	// tally.Scope[optional] means optional

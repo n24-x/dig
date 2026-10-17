@@ -12,6 +12,8 @@ type providedObject struct {
 	Fields []providedObjectField
 }
 
+var _ func(reflect.Type, resultOptions) (providedObject, error) = newProvidedObject
+
 type providedObjectField struct {
 	// Name of the field in the struct.
 	FieldName string
@@ -25,6 +27,8 @@ type providedObjectField struct {
 	// Result produced by this field.
 	Result result
 }
+
+var _ func(int, reflect.StructField, resultOptions) (providedObjectField, error) = newProvidedObjectField
 
 func (po providedObject) Provides() []resourceKey {
 	if len(po.Fields) == 0 {

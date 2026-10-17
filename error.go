@@ -13,8 +13,8 @@ type digError interface {
 }
 
 var (
-	_ digError = (*errInvalidInput)(nil)
-	_ digError = (*errInvalidGroupOption)(nil)
+	_ digError = errInvalidInput{}
+	_ digError = errInvalidGroupOption{}
 )
 
 type Error interface {
@@ -38,6 +38,8 @@ type errInvalidInput struct {
 func newErrInvalidInput(msg string, cause error) errInvalidInput {
 	return errInvalidInput{msg, cause}
 }
+
+var _ func(string, error) errInvalidInput = newErrInvalidInput
 
 func (e errInvalidInput) Error() string { return fmt.Sprint(e) }
 func (e errInvalidInput) Unwrap() error { return e.Cause }

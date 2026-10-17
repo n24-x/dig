@@ -14,7 +14,7 @@ type resourceKey struct {
 	groupName string
 }
 
-var _ fmt.Stringer = (*resourceKey)(nil)
+var _ fmt.Stringer = resourceKey{}
 
 func (k resourceKey) String() string {
 	if k.valueName != "" {

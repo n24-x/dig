@@ -48,3 +48,6 @@ func embedsType(value any, target reflect.Type) bool {
 
 	return false
 }
+
+var _ func(reflect.Type) bool = isError
+var _ func(any, reflect.Type) bool = embedsType

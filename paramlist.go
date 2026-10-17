@@ -13,9 +13,9 @@ type paramList struct {
 }
 
 var (
-	_ interface{ fmt.Stringer }             = (*paramList)(nil)
-	_ interface{ Requires() []resourceKey } = (*paramList)(nil)
-	_ interface{ DotParams() []*dot.Param } = (*paramList)(nil)
+	_ interface{ fmt.Stringer }             = paramList{}
+	_ interface{ Requires() []resourceKey } = paramList{}
+	_ interface{ DotParams() []*dot.Param } = paramList{}
 	_ func(reflect.Type) (paramList, error) = newParamList
 )
 

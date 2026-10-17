@@ -17,10 +17,7 @@ type requiredObject struct {
 	FieldOrders []int
 }
 
-var (
-	_ func(reflect.Type) (requiredObject, error)                  = newRequiredObject
-	_ func(int, reflect.StructField) (requiredObjectField, error) = newRequiredObjectField
-)
+var _ func(reflect.Type) (requiredObject, error) = newRequiredObject
 
 // requiredObjectField is a single field of a dig.Required struct.
 type requiredObjectField struct {
@@ -36,6 +33,8 @@ type requiredObjectField struct {
 	// The dependency requested by this field.
 	Param param
 }
+
+var _ func(int, reflect.StructField) (requiredObjectField, error) = newRequiredObjectField
 
 func (ro requiredObject) String() string {
 	fields := make([]string, len(ro.Fields))

@@ -26,13 +26,13 @@ type resultOptions struct {
 	As    []any
 }
 
-var _ func(reflect.Type, resultOptions) (result, error) = newResult
-
 var (
-	_ result = (*valueResult)(nil)
-	_ result = (*providedObject)(nil)
-	_ result = (*valueResultGroup)(nil)
+	_ result = valueResult{}
+	_ result = providedObject{}
+	_ result = valueResultGroup{}
 )
+
+var _ func(reflect.Type, resultOptions) (result, error) = newResult
 
 // newResult builds a result from the given typ.
 func newResult(typ reflect.Type, opts resultOptions) (result, error) {

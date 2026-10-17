@@ -6,6 +6,8 @@ import (
 	"io"
 )
 
+var _ func(digError, fmt.State, rune) = formatError
+
 func formatError(e digError, w fmt.State, v rune) {
 	multiline := w.Flag('+') && v == 'v'
 	verb := "%v"

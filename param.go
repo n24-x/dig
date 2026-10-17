@@ -19,14 +19,12 @@ type param interface {
 }
 
 var (
-	_ param = (*valueParam)(nil)
-	_ param = (*requiredObject)(nil)
-	_ param = (*valueParamGroup)(nil)
+	_ param = valueParam{}
+	_ param = requiredObject{}
+	_ param = valueParamGroup{}
 )
 
-var (
-	_ func(reflect.Type) (param, error) = newParam
-)
+var _ func(reflect.Type) (param, error) = newParam
 
 // newParam builds a param from the given typ. If the typ is a dig.Required
 // struct, a requiredObject will be returned.

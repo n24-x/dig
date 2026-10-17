@@ -8,6 +8,10 @@ import (
 	"github.com/n24-x/dig/internal/dot"
 )
 
+var _ func(io.Writer, *dot.Graph) = visualizeGraph
+var _ func(io.Writer, *dot.Group) = visualizeGroup
+var _ func(io.Writer, int, *dot.Constructor) = visualizeConstructor
+
 func visualizeGraph(w io.Writer, dg *dot.Graph) {
 	w.Write([]byte("digraph {\n\trankdir=RL;\n\tgraph [compound=true];\n"))
 	for _, g := range dg.Groups {

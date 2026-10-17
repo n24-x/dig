@@ -8,6 +8,8 @@ type group struct {
 	Passive bool
 }
 
+var _ func(string) (group, error) = parseGroupString
+
 func parseGroupString(s string) (group, error) {
 	components := strings.Split(s, ",")
 	g := group{Name: components[0]}

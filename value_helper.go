@@ -46,3 +46,6 @@ func isFieldOptional(f reflect.StructField) (bool, error) {
 
 	return optional, err
 }
+
+var _ func(reflect.StructField) (bool, error) = isIgnoreUnexportedSet
+var _ func(reflect.StructField) (bool, error) = isFieldOptional
