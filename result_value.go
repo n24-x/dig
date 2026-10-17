@@ -1,6 +1,7 @@
 package dig
 
 import (
+	"fmt"
 	"reflect"
 
 	"github.com/n24-x/dig/internal/dot"
@@ -14,6 +15,8 @@ type valueResult struct {
 
 	As []reflect.Type
 }
+
+var _ func(reflect.Type, resultOptions) (valueResult, error) = newValueResult
 
 func (r valueResult) Provides() []resourceKey {
 	keys := []resourceKey{
@@ -51,4 +54,38 @@ func (r valueResult) DotResults() []*dot.Result {
 		}
 	}
 	return dotResults
+}
+
+func newValueResult(typ reflect.Type, opts resultOptions) (valueResult, error) {
+	r := valueResult{
+		ValueType: typ,
+		ValueName: opts.Name,
+	}
+
+	var asTypes []reflect.Type
+	for _, as := range opts.As {
+		ifaceType := reflect.TypeOf(as).Elem()
+		if ifaceType == typ {
+			// Special case:
+			//   c.Resource(func() io.Reader, As(new(io.Reader)))
+			// Ignore instead of erroring out.
+			continue
+		}
+		if !typ.Implements(ifaceType) {
+			return r, newErrInvalidInput(
+				fmt.Sprintf("invalid dig.As: %v does not implement %v",
+					typ, ifaceType), nil)
+		}
+		asTypes = append(asTypes, ifaceType)
+	}
+
+	if len(asTypes) == 0 {
+		return r, nil
+	}
+
+	return valueResult{
+		ValueType: asTypes[0],
+		ValueName: opts.Name,
+		As:        asTypes[1:],
+	}, nil
 }

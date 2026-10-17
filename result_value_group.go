@@ -1,6 +1,7 @@
 package dig
 
 import (
+	"fmt"
 	"reflect"
 
 	"github.com/n24-x/dig/internal/dot"
@@ -12,7 +13,7 @@ type valueResultGroup struct {
 	// Name of the group as specified in the `group:".."` tag.
 	GroupName string
 
-	// ValueType is the element type contributed to the group.
+	// ValueType is the value or value element type contributed to the group.
 	ValueType reflect.Type
 
 	// Indicates elements of a value are to be injected individually, instead of
@@ -22,6 +23,8 @@ type valueResultGroup struct {
 
 	As []reflect.Type
 }
+
+var _ func(reflect.StructField) (valueResultGroup, error) = newValueResultGroup
 
 func (rg valueResultGroup) Provides() []resourceKey {
 	keys := []resourceKey{
@@ -63,4 +66,46 @@ func (rg valueResultGroup) DotResults() []*dot.Result {
 	}
 
 	return dotResults
+}
+
+func newValueResultGroup(sf reflect.StructField) (valueResultGroup, error) {
+	g, err := parseGroupString(sf.Tag.Get(_groupTag))
+	if err != nil {
+		return valueResultGroup{}, err
+	}
+
+	rg := valueResultGroup{
+		GroupName: g.Name,
+		Flatten:   g.Flatten,
+		ValueType: sf.Type,
+	}
+
+	named := sf.Tag.Get(_nameTag)
+	optional, _ := isFieldOptional(sf)
+
+	switch {
+	case g.Flatten && sf.Type.Kind() != reflect.Slice:
+		return rg, newErrInvalidInput(fmt.Sprintf(
+			"flatten must apply to slices: field %q (%v) is not a slice", sf.Name, sf.Type), nil)
+
+	case g.Soft:
+		return rg, newErrInvalidInput(fmt.Sprintf(
+			"cannot use soft in result groups struct tag: soft was incorrectly used in group %q",
+			rg.GroupName), nil)
+
+	case named != "":
+		return rg, newErrInvalidInput(fmt.Sprintf(
+			"cannot use named values with value groups: name:%q provided with group:%q",
+			named, rg.GroupName), nil)
+
+	case optional:
+		return rg, newErrInvalidInput(
+			"cannot use optional struct tag with result groups", nil)
+	}
+
+	if g.Flatten {
+		rg.ValueType = sf.Type.Elem()
+	}
+
+	return rg, nil
 }

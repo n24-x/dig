@@ -1,6 +1,7 @@
 package dig
 
 import (
+	"fmt"
 	"reflect"
 
 	"github.com/n24-x/dig/internal/dot"
@@ -19,8 +20,8 @@ type resultList struct {
 }
 
 var _ interface{ Provides() []resourceKey } = resultList{}
-
-//var _ interface{ DotResults() []*dot.Result } = resultList{}
+var _ interface{ DotResults() []*dot.Result } = resultList{}
+var _ func(reflect.Type, resultOptions) (resultList, error) = newResultList
 
 // Provides returns the resourceKeys produced by the constructor.
 //
@@ -41,4 +42,33 @@ func (rl resultList) DotResults() []*dot.Result {
 		dotResults = append(dotResults, r.DotResults()...)
 	}
 	return dotResults
+}
+
+func newResultList(ctype reflect.Type, opts resultOptions) (resultList, error) {
+	numReturnParameters := ctype.NumOut()
+	rl := resultList{
+		ctype:         ctype,
+		Results:       make([]result, 0, numReturnParameters),
+		resultIndexes: make([]int, numReturnParameters),
+	}
+
+	resultIndex := 0
+	for idx := range numReturnParameters {
+		typ := ctype.Out(idx)
+		if isError(typ) {
+			rl.resultIndexes[idx] = -1
+			continue
+		}
+		r, err := newResult(typ, opts)
+		if err != nil {
+			return rl, newErrInvalidInput(
+				fmt.Sprintf("bad result %d (%v)", idx+1, typ), err)
+		}
+
+		rl.Results = append(rl.Results, r)
+		rl.resultIndexes[idx] = resultIndex
+		resultIndex++
+	}
+
+	return rl, nil
 }

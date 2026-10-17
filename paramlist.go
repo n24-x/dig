@@ -59,7 +59,7 @@ func newParamList(ctype reflect.Type) (paramList, error) {
 		typ := ctype.In(i)
 		p, err := newParam(typ)
 		if err != nil {
-			return pl, newErrInvalidInput(fmt.Sprintf("bad argument %d(%v)", i+1, typ), err)
+			return pl, newErrInvalidInput(fmt.Sprintf("bad argument %d (%v)", i+1, typ), err)
 		}
 		pl.Params[i] = p
 	}
