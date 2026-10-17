@@ -41,7 +41,7 @@ func newResult(typ reflect.Type, opts resultOptions) (result, error) {
 		(typ.Kind() == reflect.Pointer && IsRequired(typ.Elem())) ||
 		embedsType(typ, _requiredPtrType):
 		return nil, newErrInvalidInput(fmt.Sprintf(
-			"cannot return required object: %v embeds a dig.Required", typ), nil)
+			"expected provided struct, but got required struct: %v embeds a dig.Required", typ), nil)
 
 	case isError(typ):
 		return nil, newErrInvalidInput("cannot return an error here, return it from the constructor instead", nil)
@@ -51,11 +51,11 @@ func newResult(typ reflect.Type, opts resultOptions) (result, error) {
 
 	case embedsType(typ, _providedPtrType):
 		return nil, newErrInvalidInput(fmt.Sprintf(
-			"cannot build a provided object by embedding *dig.Provided, embed dig.Provided instead: %v embeds *dig.Provided", typ), nil)
+			"provided struct cannot embed *dig.Provided, embed dig.Provided instead: %v embeds *dig.Provided", typ), nil)
 
 	case typ.Kind() == reflect.Pointer && IsProvided(typ.Elem()):
 		return nil, newErrInvalidInput(fmt.Sprintf(
-			"cannot return a pointer to a provided object, use a value instead: %v is a pointer to a struct that embeds dig.Provided", typ), nil)
+			"cannot use pointer as provided struct, use a value instead: %v is a pointer to a struct that embeds dig.Provided", typ), nil)
 
 	case opts.Group != "":
 		g, err := parseGroupString(opts.Group)
