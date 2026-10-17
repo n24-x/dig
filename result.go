@@ -51,11 +51,13 @@ func newResult(typ reflect.Type, opts resultOptions) (result, error) {
 
 	case embedsType(typ, _providedPtrType):
 		return nil, newErrInvalidInput(fmt.Sprintf(
-			"provided struct cannot embed *dig.Provided, embed dig.Provided instead: %v embeds *dig.Provided", typ), nil)
+			"provided struct cannot embed *dig.Provided, "+
+				"embed dig.Provided instead: %v embeds *dig.Provided", typ), nil)
 
 	case typ.Kind() == reflect.Pointer && IsProvided(typ.Elem()):
 		return nil, newErrInvalidInput(fmt.Sprintf(
-			"cannot use pointer as provided struct, use a value instead: %v is a pointer to a struct that embeds dig.Provided", typ), nil)
+			"cannot use pointer as provided struct, use a value instead:"+
+				" %v is a pointer to a struct that embeds dig.Provided", typ), nil)
 
 	case opts.Group != "":
 		g, err := parseGroupString(opts.Group)
@@ -84,12 +86,14 @@ func newResult(typ reflect.Type, opts resultOptions) (result, error) {
 		}
 		if g.Passive {
 			return nil, newErrInvalidInput(fmt.Sprintf(
-				"cannot use group struct tag with passive in provided struct: passive was incorrectly used in group %q", g.Name), nil)
+				"cannot use group struct tag with passive in provided struct:"+
+					" passive was incorrectly used in group %q", g.Name), nil)
 		}
 		if g.Flatten {
 			if typ.Kind() != reflect.Slice {
 				return nil, newErrInvalidInput(fmt.Sprintf(
-					"in provided struct, only slice field can use group struct tag with flatten: %v is not a slice", typ), nil)
+					"in provided struct, only slice field can use group struct tag with flatten:"+
+						" %v is not a slice", typ), nil)
 			}
 			rg.ValueType = rg.ValueType.Elem()
 		}

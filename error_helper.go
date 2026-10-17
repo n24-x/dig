@@ -24,11 +24,11 @@ func formatError(e digError, w fmt.State, v rune) {
 	if wrappedError == nil {
 		return
 	}
-	io.WriteString(w, ":")
+	_, _ = io.WriteString(w, ":")
 	if multiline {
-		io.WriteString(w, "\n")
+		_, _ = io.WriteString(w, "\n")
 	} else {
-		io.WriteString(w, " ")
+		_, _ = io.WriteString(w, " ")
 	}
-	fmt.Fprintf(w, verb, wrappedError)
+	_, _ = fmt.Fprintf(w, verb, wrappedError)
 }

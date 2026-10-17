@@ -19,8 +19,11 @@ type resultList struct {
 	resultIndexes []int
 }
 
-var _ interface{ Provides() []resourceKey } = resultList{}
-var _ interface{ DotResults() []*dot.Result } = resultList{}
+var (
+	_ interface{ Provides() []resourceKey }   = resultList{}
+	_ interface{ DotResults() []*dot.Result } = resultList{}
+)
+
 var _ func(reflect.Type, resultOptions) (resultList, error) = newResultList
 
 // Provides returns the resourceKeys produced by the constructor.

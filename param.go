@@ -47,7 +47,8 @@ func newParam(typ reflect.Type) (param, error) {
 
 	case typ.Kind() == reflect.Pointer && IsRequired(typ.Elem()):
 		return nil, newErrInvalidInput(fmt.Sprintf(
-			"cannot use a pointer as required struct, use a value instead: %v is a pointer to a struct that embeds dig.Required", typ), nil)
+			"cannot use a pointer as required struct, use a value instead:"+
+				" %v is a pointer to a struct that embeds dig.Required", typ), nil)
 
 	case IsRequired(typ):
 		return newRequiredObject(typ)

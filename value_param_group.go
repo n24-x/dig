@@ -83,10 +83,12 @@ func newValueParamGroup(sf reflect.StructField) (valueParamGroup, error) {
 			), nil)
 	case g.Flatten:
 		return pg, newErrInvalidInput(
-			fmt.Sprintf("cannot use group struct tag with flatten in required struct: field %q (%v) specifies flatten", sf.Name, sf.Type), nil)
+			fmt.Sprintf("cannot use group struct tag with flatten in required struct: "+
+				"field %q (%v) specifies flatten", sf.Name, sf.Type), nil)
 	case nameTag != "":
 		return pg, newErrInvalidInput(
-			fmt.Sprintf("cannot use name struct tag with group tag: name tag %q used with group tag %q", nameTag, pg.GroupName), nil)
+			fmt.Sprintf("cannot use name struct tag with group tag: "+
+				"name tag %q used with group tag %q", nameTag, pg.GroupName), nil)
 	case optionalTag:
 		return pg, newErrInvalidInput("cannot use optional struct tag with group tag", nil)
 	}

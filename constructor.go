@@ -25,10 +25,9 @@ type constructorNode struct {
 	// called bool、callback/beforeCallback
 }
 
-var _ dag.Node[resourceKey] = (*constructorNode)(nil)
-var _ fmt.Stringer = (*constructorNode)(nil)
-
 var (
+	_ dag.Node[resourceKey]                    = (*constructorNode)(nil)
+	_ fmt.Stringer                             = (*constructorNode)(nil)
 	_ interface{ Location() *digreflect.Func } = (*constructorNode)(nil)
 	_ interface{ ParamList() paramList }       = (*constructorNode)(nil)
 	_ interface{ ResultList() resultList }     = (*constructorNode)(nil)
@@ -45,8 +44,8 @@ type constructorOptions struct {
 	Location    *digreflect.Func
 
 	// TODO
-	// Callback       Callback
-	// BeforeCallback BeforeCallback
+	// Callback
+	// BeforeCallback
 }
 
 // newConstructorNode parses ctor into a dag node.

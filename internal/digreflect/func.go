@@ -32,11 +32,11 @@ func (f *Func) Format(w fmt.State, c rune) {
 	if w.Flag('+') && c == 'v' {
 		// "path/to/package".MyFunction
 		// 	path/to/file.go:42
-		fmt.Fprintf(w, "%q.%v", f.Package, f.Name)
-		fmt.Fprintf(w, "\n\t%v:%v", f.File, f.Line)
+		_, _ = fmt.Fprintf(w, "%q.%v", f.Package, f.Name)
+		_, _ = fmt.Fprintf(w, "\n\t%v:%v", f.File, f.Line)
 	} else {
 		// "path/to/package".MyFunction (path/to/file.go:42)
-		fmt.Fprintf(
+		_, _ = fmt.Fprintf(
 			w,
 			"%q.%v (%v:%v)",
 			f.Package,

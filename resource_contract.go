@@ -12,6 +12,7 @@ type Provided struct{ _ digSentinel }
 type digSentinel struct{}
 
 var (
+	//nolint:unused // TODO use
 	_noValue         reflect.Value
 	_errType         = reflect.TypeFor[error]()
 	_requiredType    = reflect.TypeFor[Required]()

@@ -34,6 +34,7 @@ func (pl paramList) Requires() []resourceKey {
 	}
 	return keys
 }
+
 func (pl paramList) DotParams() []*dot.Param {
 	var dotParams []*dot.Param
 	for _, p := range pl.Params {

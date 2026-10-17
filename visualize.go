@@ -8,12 +8,14 @@ import (
 	"github.com/n24-x/dig/internal/dot"
 )
 
-var _ func(io.Writer, *dot.Graph) = visualizeGraph
-var _ func(io.Writer, *dot.Group) = visualizeGroup
-var _ func(io.Writer, int, *dot.Constructor) = visualizeConstructor
+var (
+	_ func(io.Writer, *dot.Graph)            = visualizeGraph
+	_ func(io.Writer, *dot.Group)            = visualizeGroup
+	_ func(io.Writer, int, *dot.Constructor) = visualizeConstructor
+)
 
 func visualizeGraph(w io.Writer, dg *dot.Graph) {
-	w.Write([]byte("digraph {\n\trankdir=RL;\n\tgraph [compound=true];\n"))
+	_, _ = w.Write([]byte("digraph {\n\trankdir=RL;\n\tgraph [compound=true];\n"))
 	for _, g := range dg.Groups {
 		visualizeGroup(w, g)
 	}
@@ -21,20 +23,20 @@ func visualizeGraph(w io.Writer, dg *dot.Graph) {
 		visualizeConstructor(w, idx, ctor)
 	}
 	for _, f := range dg.Failed.TransitiveFailures {
-		fmt.Fprintf(
+		_, _ = fmt.Fprintf(
 			w,
 			"\t%s [color=orange];\n",
 			strconv.Quote(f.String()),
 		)
 	}
 	for _, f := range dg.Failed.RootCauses {
-		fmt.Fprintf(
+		_, _ = fmt.Fprintf(
 			w,
 			"\t%s [color=red];\n",
 			strconv.Quote(f.String()),
 		)
 	}
-	w.Write([]byte("}"))
+	_, _ = w.Write([]byte("}"))
 }
 
 // "[type=*main.t3 group=foo]" [shape=diamond label=<*main.t3<BR /><FONT POINT-SIZE="10">Group: foo</FONT>>];
@@ -44,14 +46,14 @@ func visualizeGraph(w io.Writer, dg *dot.Graph) {
 
 // visualizeGroup writes the DOT representation of the given g to w.
 func visualizeGroup(w io.Writer, g *dot.Group) {
-	fmt.Fprintf(
+	_, _ = fmt.Fprintf(
 		w,
 		"\t%s [%s];\n",
 		strconv.Quote(g.String()),
 		g.Attributes(),
 	)
 	for _, r := range g.Results {
-		fmt.Fprintf(
+		_, _ = fmt.Fprintf(
 			w,
 			"\t%s -> %s;\n",
 			strconv.Quote(g.String()),
@@ -72,11 +74,11 @@ func visualizeGroup(w io.Writer, g *dot.Group) {
 // visualizeConstructor writes the DOT representation of the given
 // constructor ctor to w.
 func visualizeConstructor(w io.Writer, index int, ctor *dot.Constructor) {
-	fmt.Fprintf(w, "\tsubgraph cluster_%d {\n", index)
+	_, _ = fmt.Fprintf(w, "\tsubgraph cluster_%d {\n", index)
 	if ctor.Package != "" {
-		fmt.Fprintf(w, "\t\tlabel = %s;\n", strconv.Quote(ctor.Package))
+		_, _ = fmt.Fprintf(w, "\t\tlabel = %s;\n", strconv.Quote(ctor.Package))
 	}
-	fmt.Fprintf(
+	_, _ = fmt.Fprintf(
 		w,
 		"\t\tconstructor_%d [shape=plaintext label=%s];\n",
 		index,
@@ -84,11 +86,11 @@ func visualizeConstructor(w io.Writer, index int, ctor *dot.Constructor) {
 	)
 
 	if ctor.ErrorType != 0 {
-		fmt.Fprintf(w, "\t\tcolor=%s;\n", ctor.ErrorType.Color())
+		_, _ = fmt.Fprintf(w, "\t\tcolor=%s;\n", ctor.ErrorType.Color())
 	}
 
 	for _, r := range ctor.Results {
-		fmt.Fprintf(
+		_, _ = fmt.Fprintf(
 			w,
 			"\t\t%s [shape=ellipse, %s];\n",
 			strconv.Quote(r.String()),
@@ -96,7 +98,7 @@ func visualizeConstructor(w io.Writer, index int, ctor *dot.Constructor) {
 		)
 	}
 
-	fmt.Fprintf(w, "\t}\n")
+	_, _ = fmt.Fprintf(w, "\t}\n")
 
 	for _, p := range ctor.Params {
 		var optionalStyle string
@@ -104,7 +106,7 @@ func visualizeConstructor(w io.Writer, index int, ctor *dot.Constructor) {
 			optionalStyle = " style=dashed"
 		}
 
-		fmt.Fprintf(
+		_, _ = fmt.Fprintf(
 			w,
 			"\tconstructor_%d -> %s [ltail=cluster_%d%s];\n",
 			index,
@@ -115,7 +117,7 @@ func visualizeConstructor(w io.Writer, index int, ctor *dot.Constructor) {
 	}
 
 	for _, p := range ctor.GroupParams {
-		fmt.Fprintf(
+		_, _ = fmt.Fprintf(
 			w,
 			"\tconstructor_%d -> %s [ltail=cluster_%d];\n",
 			index,

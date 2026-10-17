@@ -23,6 +23,7 @@ type Error interface {
 }
 
 type PanicError struct {
+	//nolint:unused // TODO use
 	fn    *digreflect.Func
 	Panic any
 }
@@ -45,7 +46,7 @@ func (e errInvalidInput) Error() string { return fmt.Sprint(e) }
 func (e errInvalidInput) Unwrap() error { return e.Cause }
 
 func (e errInvalidInput) writeMessage(w io.Writer, _ string) {
-	fmt.Fprint(w, e.Message)
+	_, _ = fmt.Fprint(w, e.Message)
 }
 
 func (e errInvalidInput) Format(w fmt.State, c rune) {
@@ -56,8 +57,8 @@ type errInvalidGroupOption struct{ Option string }
 
 func (e errInvalidGroupOption) Error() string { return fmt.Sprint(e) }
 
-func (e errInvalidGroupOption) writeMessage(w io.Writer, v string) {
-	fmt.Fprintf(w, "invalid option %q", e.Option)
+func (e errInvalidGroupOption) writeMessage(w io.Writer, _ string) {
+	_, _ = fmt.Fprintf(w, "invalid option %q", e.Option)
 }
 
 func (e errInvalidGroupOption) Format(w fmt.State, c rune) {

@@ -44,17 +44,17 @@ func (ro requiredObject) String() string {
 	return strings.Join(fields, " ")
 }
 
-func (po requiredObject) Requires() []resourceKey {
+func (ro requiredObject) Requires() []resourceKey {
 	var keys []resourceKey
-	for _, f := range po.Fields {
+	for _, f := range ro.Fields {
 		keys = append(keys, f.Param.Requires()...)
 	}
 	return keys
 }
 
-func (po requiredObject) DotParams() []*dot.Param {
+func (ro requiredObject) DotParams() []*dot.Param {
 	var params []*dot.Param
-	for _, f := range po.Fields {
+	for _, f := range ro.Fields {
 		params = append(params, f.Param.DotParams()...)
 	}
 	return params
@@ -66,8 +66,7 @@ func newRequiredObject(typ reflect.Type) (requiredObject, error) {
 	ro := requiredObject{Type: typ}
 
 	var ignoreUnexported bool
-	for i := 0; i < typ.NumField(); i++ {
-		f := typ.Field(i)
+	for f := range typ.Fields() {
 		if f.Type == _requiredType {
 			var err error
 			ignoreUnexported, err = isIgnoreUnexportedSet(f)
@@ -78,7 +77,7 @@ func newRequiredObject(typ reflect.Type) (requiredObject, error) {
 		}
 	}
 
-	for i := 0; i < typ.NumField(); i++ {
+	for i := range typ.NumField() {
 		f := typ.Field(i)
 		if f.Type == _requiredType {
 			// Skip dig.Required.
@@ -108,7 +107,8 @@ func newRequiredObjectField(idx int, f reflect.StructField) (requiredObjectField
 	switch {
 	case f.PkgPath != "":
 		return pof, newErrInvalidInput(
-			fmt.Sprintf("unexported fields not allowed in dig.Required, did you mean to export %q (%v)?", f.Name, f.Type), nil)
+			fmt.Sprintf("unexported fields not allowed in dig.Required, "+
+				"did you mean to export %q (%v)?", f.Name, f.Type), nil)
 
 	case f.Tag.Get(_groupTag) != "":
 		var err error
