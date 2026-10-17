@@ -41,7 +41,7 @@ func newResult(typ reflect.Type, opts resultOptions) (result, error) {
 		(typ.Kind() == reflect.Pointer && IsRequired(typ.Elem())) ||
 		embedsType(typ, _requiredPtrType):
 		return nil, newErrInvalidInput(fmt.Sprintf(
-			"cannot return parameter objects: %v embeds a dig.Required", typ), nil)
+			"cannot return required object: %v embeds a dig.Required", typ), nil)
 
 	case isError(typ):
 		return nil, newErrInvalidInput("cannot return an error here, return it from the constructor instead", nil)
@@ -51,11 +51,11 @@ func newResult(typ reflect.Type, opts resultOptions) (result, error) {
 
 	case embedsType(typ, _providedPtrType):
 		return nil, newErrInvalidInput(fmt.Sprintf(
-			"cannot build a result object by embedding *dig.Provided, embed dig.Provided instead: %v embeds *dig.Provided", typ), nil)
+			"cannot build a provided object by embedding *dig.Provided, embed dig.Provided instead: %v embeds *dig.Provided", typ), nil)
 
 	case typ.Kind() == reflect.Pointer && IsProvided(typ.Elem()):
 		return nil, newErrInvalidInput(fmt.Sprintf(
-			"cannot return a pointer to a result object, use a value instead: %v is a pointer to a struct that embeds dig.Provided", typ), nil)
+			"cannot return a pointer to a provided object, use a value instead: %v is a pointer to a struct that embeds dig.Provided", typ), nil)
 
 	case opts.Group != "":
 		g, err := parseGroupString(opts.Group)
@@ -84,12 +84,12 @@ func newResult(typ reflect.Type, opts resultOptions) (result, error) {
 		}
 		if g.Soft {
 			return nil, newErrInvalidInput(fmt.Sprintf(
-				"cannot use soft with result value groups: soft was used with group:%q", g.Name), nil)
+				"cannot use group struct tag with soft in provided struct: soft was incorrectly used in group %q", g.Name), nil)
 		}
 		if g.Flatten {
 			if typ.Kind() != reflect.Slice {
 				return nil, newErrInvalidInput(fmt.Sprintf(
-					"flatten can be applied to slices only: %v is not a slice", typ), nil)
+					"in provided struct, only slice can use group struct tag with flatten: %v is not a slice", typ), nil)
 			}
 			rg.ValueType = rg.ValueType.Elem()
 		}
