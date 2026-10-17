@@ -4,6 +4,8 @@ import (
 	"reflect"
 
 	"github.com/n24-x/dig/internal/digreflect"
+
+	dag "github.com/n24-x/dag-go"
 )
 
 type constructorNode struct {
@@ -15,4 +17,14 @@ type constructorNode struct {
 
 	// TODO
 	// called bool、callback/beforeCallback、id dot.ConstructorID
+}
+
+var _ dag.Node[resourceKey] = constructorNode{}
+
+func (cn constructorNode) Requires() []resourceKey {
+	return cn.paramList.Requires()
+}
+
+func (cn constructorNode) Provides() []resourceKey {
+	return cn.resultList.Provides()
 }
