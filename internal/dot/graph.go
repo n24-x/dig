@@ -249,7 +249,7 @@ func (dg *Graph) pruneConstructorParams(c *Constructor, consumers map[nodeKey][]
 
 // pruneGroupResults removes results of the constructor argument that are still referenced in
 // the Group object that contains that result. If a group no longer exists references to that
-// should should be removed.
+// should be removed.
 func (dg *Graph) pruneGroupResults(c *Constructor, groups map[nodeKey]*Group) {
 	for _, r := range c.Results {
 		key := r.nodeKey()

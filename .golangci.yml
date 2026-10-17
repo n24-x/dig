@@ -1,0 +1,164 @@
+version: "2"
+
+run:
+  timeout: 5m
+  tests: true # Lint _test.go 
+
+linters:
+  default: none
+  enable:
+    # base:
+    - errcheck
+    - govet
+    - ineffassign
+    - staticcheck
+    - unused
+    - forbidigo # forbids identifiers
+ 
+    # extras:
+    - nolintlint # lints nolint directives
+    - modernize
+    - revive
+    - errorlint
+    - nilerr # finds the code that returns nil even if it checks that the error is not nil
+    # Modern-Go idioms the code already follows, so they stay followed.
+    - intrange
+    - usestdlibvars
+    - unconvert
+    - predeclared
+    # Helpers are only worth having if they ask for *testing.T first.
+    - thelper
+    - asasalint
+    # Cheap correctness rules that cost nothing to keep clean.
+    - iotamixing # checks if iotas are being used in const blocks with other non-iota declarations
+    - copyloopvar
+    - durationcheck
+    - makezero
+    - reassign
+    - wastedassign
+    # others
+    - exhaustive # checks exhaustiveness of enum switch statements
+    - fatcontext # detects nested contexts in loops
+    - noctx # finds sending http request without context.Context
+    # Reads as style but catches real slips in a codebase this comment-heavy: a duplicate word.
+    - dupword
+
+# skip file or lint or pattern
+  exclusions:
+    presets:
+      - comments
+      - common-false-positives
+      #- std-error-handling
+    generated: lax
+    rules:
+      # Unused parameters are common and acceptable in test and callback
+      # signatures, so only enforce the check outside of test files.
+      - linters: [revive]
+        path: _test\.go$
+        text: 'unused-parameter: parameter \S+ seems to be unused, consider removing or renaming it as _'
+      
+      - linters: [errcheck]
+        path: _test\.go$
+        text: 'Error return value of *_test.go is not checked'
+
+      - linters: [unused]
+        path: testing_testsdata_.*_test\.go$
+        text: 'is unused'
+
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
+
+  settings:
+    # skip lint
+    nolintlint:
+      # Exclude following linters from requiring an explanation.
+      # Default: []
+      allow-no-explanation: []
+      require-explanation: true
+      require-specific: true
+
+    govet:
+      # Enable all analyzers.
+      # Default: false
+      enable-all: true
+      # Disable analyzers by name.
+      # Run `GL_DEBUG=govet golangci-lint run --enable=govet` to see default, all available analyzers, and enabled analyzers.
+      # Default: []
+      disable:
+        - fieldalignment # too strict
+      settings:
+        shadow:
+          # Whether to be strict about shadowing; can be noisy.
+          # Default: false
+          strict: true
+
+    errcheck: # in dev, disable std-error-handling to check
+      exclude-functions:
+        # These methods can not fail.
+        - (*go.uber.org/zap/buffer.Buffer).Write
+        - io.WriteString(fmt.State)
+      # Report about not checking of errors in type assertions: `a := b.(MyStruct)`.
+      # Such cases aren't reported by default.
+      # Default: false
+      check-type-assertions: true
+
+    staticcheck:
+      checks:
+        - all
+        # QF1001: suggests applying De Morgan's law to boolean expressions
+        # (e.g. !(a && b) -> !a || !b).
+        - -QF1001
+        # ST1003: flags ALL_CAPS names and asks for CamelCase.
+        - -ST1003
+        # QF1008: suggests removing redundant embedded field names from selectors
+        # (e.g. pod.ObjectMeta.Name -> pod.Name).
+        - -QF1008
+        # SA4023: reports nil comparisons that are always true or always false.
+        # Cross-platform code often has platform-specific implementations, which
+        # makes this check produce structural false positives.
+        - -SA4023
+    forbidigo:
+      forbid:
+        - pattern: '__Placeholder'
+          msg: "forbidigo placeholder"
+
+    exhaustive:
+      # Program elements to check for exhaustiveness.
+      # Default: [ switch ]
+      check:
+        - switch
+        - map
+
+    modernize:
+      disable:
+        - omitzero
+
+formatters:
+  enable:
+    - gofumpt
+    - gci # import order
+    - golines
+  settings:
+      gci:
+        sections:
+            - standard
+            - prefix(github.com/n24-x/dig/)
+            - default
+        custom-order: true
+      golines:
+        # Target maximum line length.
+        # Default: 100
+        max-len: 120
+  exclusions:
+    generated: lax
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
+
+issues:
+  # Print all issues reported by all linters.
+  max-issues-per-linter: 0
+  max-same-issues: 0

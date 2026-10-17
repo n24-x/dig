@@ -23,7 +23,9 @@ func (s ErrorType) Color() string {
 		return "red"
 	case transitiveFailureError:
 		return "orange"
-	default:
+	case noError:
+		return "black"
+	default: // make compiler happy
 		return "black"
 	}
 }
