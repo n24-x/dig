@@ -80,27 +80,27 @@ func newValueResultGroup(sf reflect.StructField) (valueResultGroup, error) {
 		ValueType: sf.Type,
 	}
 
-	named := sf.Tag.Get(_nameTag)
-	optional, _ := isFieldOptional(sf)
+	nameTag := sf.Tag.Get(_nameTag)
+	optionalTag, _ := isFieldOptional(sf)
 
 	switch {
 	case g.Flatten && sf.Type.Kind() != reflect.Slice:
 		return rg, newErrInvalidInput(fmt.Sprintf(
-			"flatten must apply to slices: field %q (%v) is not a slice", sf.Name, sf.Type), nil)
+			"in provided struct, only slice can use group struct tag with flatten: field %q (%v) is not a slice", sf.Name, sf.Type), nil)
 
 	case g.Soft:
 		return rg, newErrInvalidInput(fmt.Sprintf(
-			"cannot use soft in result groups struct tag: soft was incorrectly used in group %q",
+			"cannot use group struct tag with soft in provided struct: soft was incorrectly used in group %q",
 			rg.GroupName), nil)
 
-	case named != "":
+	case nameTag != "":
 		return rg, newErrInvalidInput(fmt.Sprintf(
-			"cannot use named values with value groups: name:%q provided with group:%q",
-			named, rg.GroupName), nil)
+			"cannot use name struct tag with group tag: name tag %q used with group tag %q",
+			nameTag, rg.GroupName), nil)
 
-	case optional:
+	case optionalTag:
 		return rg, newErrInvalidInput(
-			"cannot use optional struct tag with result groups", nil)
+			"cannot use optional struct tag with group tag", nil)
 	}
 
 	if g.Flatten {

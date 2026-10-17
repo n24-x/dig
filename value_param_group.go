@@ -59,36 +59,36 @@ func (pg valueParamGroup) DotParams() []*dot.Param {
 	}
 }
 
-func newValueParamGroup(f reflect.StructField) (valueParamGroup, error) {
-	g, err := parseGroupString(f.Tag.Get(_groupTag))
+func newValueParamGroup(sf reflect.StructField) (valueParamGroup, error) {
+	g, err := parseGroupString(sf.Tag.Get(_groupTag))
 	if err != nil {
 		return valueParamGroup{}, err
 	}
 
 	pg := valueParamGroup{
 		GroupName: g.Name,
-		ValueType: f.Type,
+		ValueType: sf.Type,
 		Soft:      g.Soft,
 	}
 
-	named := f.Tag.Get(_nameTag)
-	optional, _ := isFieldOptional(f)
+	nameTag := sf.Tag.Get(_nameTag)
+	optionalTag, _ := isFieldOptional(sf)
 	switch {
-	case f.Type.Kind() != reflect.Slice:
+	case sf.Type.Kind() != reflect.Slice:
 		return pg, newErrInvalidInput(
 			fmt.Sprintf(
 				"value groups may be consumed as slices only: field %q (%v) is not a slice",
-				f.Name,
-				f.Type,
+				sf.Name,
+				sf.Type,
 			), nil)
 	case g.Flatten:
 		return pg, newErrInvalidInput(
-			fmt.Sprintf("cannot use flatten in parameter value groups: field %q (%v) specifies flatten", f.Name, f.Type), nil)
-	case named != "":
+			fmt.Sprintf("cannot use group struct tag with flatten in required struct: field %q (%v) specifies flatten", sf.Name, sf.Type), nil)
+	case nameTag != "":
 		return pg, newErrInvalidInput(
-			fmt.Sprintf("cannot use named values with value groups: name:%q requested with group:%q", named, pg.GroupName), nil)
-	case optional:
-		return pg, newErrInvalidInput("value groups cannot be optional", nil)
+			fmt.Sprintf("cannot use name struct tag with group tag: name tag %q used with group tag %q", nameTag, pg.GroupName), nil)
+	case optionalTag:
+		return pg, newErrInvalidInput("cannot use optional struct tag with group tag", nil)
 	}
 	return pg, nil
 }
