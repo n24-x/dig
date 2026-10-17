@@ -102,6 +102,14 @@ func newProvidedObjectField(index int, sf reflect.StructField, opts resultOption
 			fmt.Sprintf("unexported fields not allowed in provided struct, did you mean to export %q (%v)?",
 				sf.Name, sf.Type), nil)
 
+	case sf.Tag.Get(_optionalTag) != "":
+		return providedObjectField{}, newErrInvalidInput(
+			fmt.Sprintf("cannot use optional struct tag in provided struct: "+
+				"field %q %v have optional tag",
+				sf.Name,
+				sf.Type,
+			), nil)
+
 	case sf.Tag.Get(_groupTag) != "":
 		var err error
 		r, err = newValueResultGroup(sf)
