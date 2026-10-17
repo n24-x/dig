@@ -38,18 +38,18 @@ func newParam(typ reflect.Type) (param, error) {
 
 		return nil, newErrInvalidInput(
 			fmt.Sprintf(
-				"cannot depend on result objects: %v embeds a dig.Provided",
+				"expected required struct, but got provided struct: %v embeds a dig.Provided",
 				typ,
 			), nil)
 
 	case embedsType(typ, _requiredPtrType):
 		return nil, newErrInvalidInput(fmt.Sprintf(
-			"cannot build a parameter object by embedding *dig.Required, embed dig.Required instead: %v embeds *dig.Required",
+			"required struct cannot embed *dig.Required, embed dig.Required instead: %v embeds *dig.Required",
 			typ), nil)
 
 	case typ.Kind() == reflect.Pointer && IsRequired(typ.Elem()):
 		return nil, newErrInvalidInput(fmt.Sprintf(
-			"cannot depend on a pointer to a parameter object, use a value instead: %v is a pointer to a struct that embeds dig.Required", typ), nil)
+			"cannot use a pointer as required struct, use a value instead: %v is a pointer to a struct that embeds dig.Required", typ), nil)
 
 	case IsRequired(typ):
 		return newRequiredObject(typ)
