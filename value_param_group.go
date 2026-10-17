@@ -77,7 +77,7 @@ func newValueParamGroup(sf reflect.StructField) (valueParamGroup, error) {
 	case sf.Type.Kind() != reflect.Slice:
 		return pg, newErrInvalidInput(
 			fmt.Sprintf(
-				"value groups may be consumed as slices only: field %q (%v) is not a slice",
+				"in required struct, only slice field can use group tag: field %q (%v) is not a slice",
 				sf.Name,
 				sf.Type,
 			), nil)

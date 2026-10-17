@@ -86,7 +86,7 @@ func newValueResultGroup(sf reflect.StructField) (valueResultGroup, error) {
 	switch {
 	case g.Flatten && sf.Type.Kind() != reflect.Slice:
 		return rg, newErrInvalidInput(fmt.Sprintf(
-			"in provided struct, only slice can use group struct tag with flatten: field %q (%v) is not a slice", sf.Name, sf.Type), nil)
+			"in provided struct, only slice field can use group struct tag with flatten: field %q (%v) is not a slice", sf.Name, sf.Type), nil)
 
 	case g.Soft:
 		return rg, newErrInvalidInput(fmt.Sprintf(

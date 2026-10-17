@@ -89,7 +89,7 @@ func newResult(typ reflect.Type, opts resultOptions) (result, error) {
 		if g.Flatten {
 			if typ.Kind() != reflect.Slice {
 				return nil, newErrInvalidInput(fmt.Sprintf(
-					"in provided struct, only slice can use group struct tag with flatten: %v is not a slice", typ), nil)
+					"in provided struct, only slice field can use group struct tag with flatten: %v is not a slice", typ), nil)
 			}
 			rg.ValueType = rg.ValueType.Elem()
 		}
