@@ -61,12 +61,10 @@ linters:
         path: _test\.go$
         text: 'Error return value of *_test.go is not checked'
 
-      # staticcheck already has smarter checks for empty blocks.
-      # revive's empty-block linter has false positives.
-      # For example, as of writing this, the following is not allowed.
-      #   for foo() { }
-      - linters: [revive]
-        text: 'empty-block: this block is empty, you can remove it'
+      - linters: [unused]
+        path: testing_testsdata_.*_test\.go$
+        text: 'is unused'
+
     paths:
       - third_party$
       - builtin$

@@ -105,7 +105,7 @@ func newProvidedObjectField(index int, sf reflect.StructField, opts resultOption
 	case sf.Tag.Get(_optionalTag) != "":
 		return providedObjectField{}, newErrInvalidInput(
 			fmt.Sprintf("cannot use optional struct tag in provided struct: "+
-				"field %q %v have optional tag",
+				"field %q (%v) has optional tag",
 				sf.Name,
 				sf.Type,
 			), nil)
