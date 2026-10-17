@@ -12,60 +12,14 @@ import (
 func TestNewConstructorNodeGoodCases(t *testing.T) {
 	t.Parallel()
 
-	type t1 struct{}
-	type t2 struct{}
-	type t3 struct{}
-
-	type requiredParams struct {
-		Required
-
-		A *t1
-		B *t2 `name:"bee"`
-	}
-
-	type optionalParams struct {
-		Required
-
-		A *t1 `optional:"true"`
-		B *t2
-	}
-
-	type groupParams struct {
-		Required
-
-		Ts []*t1 `group:"ts"`
-	}
-
-	type passiveGroupParams struct {
-		Required
-		Ts []*t1 `group:"ts,passive"`
-	}
-
-	type providedResults struct {
-		Provided
-
-		A *t1
-		B *t2 `name:"bee"`
-	}
-
-	type groupResults struct {
-		Provided
-
-		Ts []*t1 `group:"ts"`
-	}
-
-	type flattenResults struct {
-		Provided
-
-		Ts []*t1 `group:"ts,flatten"`
-	}
-
-	kT1 := resourceKey{valueType: reflect.TypeFor[*t1]()}
-	kT2 := resourceKey{valueType: reflect.TypeFor[*t2]()}
-	kT3 := resourceKey{valueType: reflect.TypeFor[*t3]()}
-	kT2Named := resourceKey{valueType: reflect.TypeFor[*t2](), valueName: "bee"}
-	kT1Group := resourceKey{valueType: reflect.TypeFor[*t1](), groupName: "ts"}
-	kT1SliceGroup := resourceKey{valueType: reflect.TypeFor[[]*t1](), groupName: "ts"}
+	kTyp1 := resourceKey{valueType: reflect.TypeFor[*typ1]()}
+	kTyp2 := resourceKey{valueType: reflect.TypeFor[*typ2]()}
+	kTyp3 := resourceKey{valueType: reflect.TypeFor[*typ3]()}
+	kTyp2Named := resourceKey{valueType: reflect.TypeFor[*typ2](), valueName: "lee"}
+	kTyp1Group := resourceKey{valueType: reflect.TypeFor[*typ1](), groupName: "rain"}
+	kTyp1Slice := resourceKey{valueType: reflect.TypeFor[[]*typ1]()}
+	kInt := resourceKey{valueType: reflect.TypeFor[int]()}
+	kError := resourceKey{valueType: reflect.TypeFor[error]()}
 
 	tests := []struct {
 		name         string
@@ -76,57 +30,70 @@ func TestNewConstructorNodeGoodCases(t *testing.T) {
 	}{
 		{
 			name:         "single result",
-			input:        func() *t3 { return nil },
-			wantProvides: []resourceKey{kT3},
+			input:        func() *typ3 { return nil },
+			wantProvides: []resourceKey{kTyp3},
 		},
 		{
 			name:         "two params",
-			input:        func(*t1, *t2) *t3 { return nil },
-			wantRequires: []resourceKey{kT1, kT2},
-			wantProvides: []resourceKey{kT3},
+			input:        func(*typ1, *typ2) *typ3 { return nil },
+			wantRequires: []resourceKey{kTyp1, kTyp2},
+			wantProvides: []resourceKey{kTyp3},
 		},
 		{
 			name:         "error result is not a resource",
-			input:        func() (*t1, error) { return nil, nil },
-			wantProvides: []resourceKey{kT1},
+			input:        func() (*typ1, error) { return nil, nil },
+			wantProvides: []resourceKey{kTyp1},
 		},
 		{
-			name:         "required struct is flattened",
-			input:        func(requiredParams) *t3 { return nil },
-			wantRequires: []resourceKey{kT1, kT2Named},
-			wantProvides: []resourceKey{kT3},
+			name:         "requiredParamsGoodData1: required struct is flattened",
+			input:        func(requiredParamsGoodData1) *typ3 { return nil },
+			wantRequires: []resourceKey{kTyp1, kTyp2Named},
+			wantProvides: []resourceKey{kTyp3},
 		},
 		{
-			name:         "optional param is dropped from requires",
-			input:        func(optionalParams) *t3 { return nil },
-			wantRequires: []resourceKey{kT2},
-			wantProvides: []resourceKey{kT3},
+			name:         "optionalParamsGoodData2: optional param is dropped from requires",
+			input:        func(optionalParamsGoodData2) *typ3 { return nil },
+			wantRequires: []resourceKey{kTyp2},
+			wantProvides: []resourceKey{kTyp3},
 		},
 		{
-			name:         "param group uses the element type",
-			input:        func(groupParams) *t3 { return nil },
-			wantRequires: []resourceKey{kT1Group},
-			wantProvides: []resourceKey{kT3},
+			name:         "groupParamsGoodData3: param group uses the element type",
+			input:        func(groupParamsGoodData3) *typ3 { return nil },
+			wantRequires: []resourceKey{kTyp1Group},
+			wantProvides: []resourceKey{kTyp3},
 		},
 		{
-			name:         "passive group is dropped from requires",
-			input:        func(passiveGroupParams) *t3 { return nil },
-			wantProvides: []resourceKey{kT3},
+			name:         "passiveGroupParamsGoodData4: passive group is dropped from requires",
+			input:        func(passiveGroupParamsGoodData4) *typ3 { return nil },
+			wantRequires: []resourceKey{kInt},
+			wantProvides: []resourceKey{kTyp3},
 		},
 		{
-			name:         "provided struct is flattened",
-			input:        func() providedResults { return providedResults{} },
-			wantProvides: []resourceKey{kT1, kT2Named},
+			name:         "ignoreUnexportedParamsGoodData5: unexported field is skipped",
+			input:        func(ignoreUnexportedParamsGoodData5) *typ3 { return nil },
+			wantRequires: []resourceKey{kTyp1Slice},
+			wantProvides: []resourceKey{kTyp3},
 		},
 		{
-			name:         "result group without flatten keeps the slice type",
-			input:        func() groupResults { return groupResults{} },
-			wantProvides: []resourceKey{kT1SliceGroup},
+			name:         "paramsGoodData6: error field is a dependency",
+			input:        func(paramsGoodData6) *typ3 { return nil },
+			wantRequires: []resourceKey{kTyp1, kError},
+			wantProvides: []resourceKey{kTyp3},
 		},
 		{
-			name:         "result group with flatten uses the element type",
-			input:        func() flattenResults { return flattenResults{} },
-			wantProvides: []resourceKey{kT1Group},
+			name:         "providedResultsGoodData7: provided struct is flattened",
+			input:        func() providedResultsGoodData7 { return providedResultsGoodData7{} },
+			wantProvides: []resourceKey{kTyp1, kTyp2Named},
+		},
+		{
+			name:         "groupResultsGoodData8: result group keeps the value type",
+			input:        func() groupResultsGoodData8 { return groupResultsGoodData8{} },
+			wantProvides: []resourceKey{kTyp1Group},
+		},
+		{
+			name:         "flattenResultsGoodData9: result group with flatten uses the element type",
+			input:        func() flattenResultsGoodData9 { return flattenResultsGoodData9{} },
+			wantProvides: []resourceKey{kTyp1Group},
 		},
 		{
 			name:         "As replaces the provided type",
@@ -136,15 +103,15 @@ func TestNewConstructorNodeGoodCases(t *testing.T) {
 		},
 		{
 			name:         "ResultName names the provided value",
-			input:        func() *t1 { return nil },
+			input:        func() *typ1 { return nil },
 			opts:         constructorOptions{ResultName: "foo"},
-			wantProvides: []resourceKey{{valueType: reflect.TypeFor[*t1](), valueName: "foo"}},
+			wantProvides: []resourceKey{{valueType: reflect.TypeFor[*typ1](), valueName: "foo"}},
 		},
 		{
 			name:         "ResultGroup puts the provided value in a group",
-			input:        func() *t1 { return nil },
-			opts:         constructorOptions{ResultGroup: "ts"},
-			wantProvides: []resourceKey{kT1Group},
+			input:        func() *typ1 { return nil },
+			opts:         constructorOptions{ResultGroup: "rain"},
+			wantProvides: []resourceKey{kTyp1Group},
 		},
 	}
 
@@ -162,52 +129,6 @@ func TestNewConstructorNodeGoodCases(t *testing.T) {
 func TestNewConstructorNodeBadCases(t *testing.T) {
 	t.Parallel()
 
-	type t1 struct{}
-
-	type requiredParams struct {
-		Required
-		A *t1
-	}
-
-	type providedResults struct {
-		Provided
-		A *t1
-	}
-
-	type embedsRequiredPtr struct{ *Required }
-
-	type embedsProvidedPtr struct{ *Provided }
-
-	type groupNotSlice struct {
-		Required
-		A *t1 `group:"a"`
-	}
-
-	type groupWithName struct {
-		Required
-		A []*t1 `group:"a" name:"x"`
-	}
-
-	type groupWithOptional struct {
-		Required
-		A []*t1 `group:"a" optional:"true"`
-	}
-
-	type resultWithError struct {
-		Provided
-		E error
-	}
-
-	type flattenNonSlice struct {
-		Provided
-		A *t1 `group:"a,flatten"`
-	}
-
-	type passiveResult struct {
-		Provided
-		A []*t1 `group:"a,passive"`
-	}
-
 	tests := []struct {
 		name    string
 		input   any
@@ -215,63 +136,79 @@ func TestNewConstructorNodeBadCases(t *testing.T) {
 		wantErr string
 	}{
 		{
-			name:    "param is a provided struct",
-			input:   func(providedResults) *t1 { return nil },
-			wantErr: "expected required struct, but got provided struct",
-		},
-		{
-			name:    "param embeds *Required",
-			input:   func(embedsRequiredPtr) *t1 { return nil },
-			wantErr: "required struct cannot embed *dig.Required",
-		},
-		{
 			name:    "param is a pointer to a required struct",
-			input:   func(*requiredParams) *t1 { return nil },
+			input:   func(*requiredParamsGoodData1) *typ3 { return nil },
 			wantErr: "cannot use a pointer as required struct",
 		},
 		{
-			name:    "param group is not a slice",
-			input:   func(groupNotSlice) *t1 { return nil },
-			wantErr: "only slice field can use group tag",
-		},
-		{
-			name:    "param group uses a name tag",
-			input:   func(groupWithName) *t1 { return nil },
-			wantErr: "cannot use name struct tag with group tag",
-		},
-		{
-			name:    "param group uses an optional tag",
-			input:   func(groupWithOptional) *t1 { return nil },
-			wantErr: "cannot use optional struct tag with group tag",
-		},
-		{
-			name:    "result is a required struct",
-			input:   func() requiredParams { return requiredParams{} },
-			wantErr: "expected provided struct, but got required struct",
-		},
-		{
-			name:    "result embeds *Provided",
-			input:   func() embedsProvidedPtr { return embedsProvidedPtr{} },
-			wantErr: "provided struct cannot embed *dig.Provided",
-		},
-		{
 			name:    "result is a pointer to a provided struct",
-			input:   func() *providedResults { return nil },
+			input:   func() *providedResultsGoodData7 { return nil },
 			wantErr: "cannot use pointer as provided struct",
 		},
 		{
-			name:    "result struct has an error field",
-			input:   func() resultWithError { return resultWithError{} },
+			name:    "paramsBadData1: optional value is not a valid bool",
+			input:   func(paramsBadData1) *typ3 { return nil },
+			wantErr: `invalid value "janus" for "optional" tag on field A`,
+		},
+		{
+			name:    "resultsBadData2: optional is not allowed",
+			input:   func() resultsBadData2 { return resultsBadData2{} },
+			wantErr: "cannot use optional struct tag in provided struct",
+		},
+		{
+			name:    "paramsBadData3: group can only be used on slices",
+			input:   func(paramsBadData3) *typ3 { return nil },
+			wantErr: "only slice field can use group tag",
+		},
+		{
+			name:    "paramsBadData4: group conflicts with name",
+			input:   func(paramsBadData4) *typ3 { return nil },
+			wantErr: "cannot use name struct tag with group tag",
+		},
+		{
+			name:    "resultsBadData5: group conflicts with name/optional",
+			input:   func() resultsBadData5 { return resultsBadData5{} },
+			wantErr: "cannot use optional struct tag in provided struct",
+		},
+		{
+			name:    "resultsBadData6: error is not a valid result field",
+			input:   func() resultsBadData6 { return resultsBadData6{} },
 			wantErr: "cannot return an error here",
 		},
 		{
-			name:    "result group flattens a non-slice",
-			input:   func() flattenNonSlice { return flattenNonSlice{} },
-			wantErr: "only slice field can use group struct tag with flatten",
+			name:    "paramsBadData7: unexported field",
+			input:   func(paramsBadData7) *typ3 { return nil },
+			wantErr: "unexported fields not allowed in dig.Required",
 		},
 		{
-			name:    "result group is passive",
-			input:   func() passiveResult { return passiveResult{} },
+			name:    "resultsBadData8: unexported field",
+			input:   func() resultsBadData8 { return resultsBadData8{} },
+			wantErr: "unexported fields not allowed in provided struct",
+		},
+		{
+			name:    "paramsBadData9: embeds *Required",
+			input:   func(paramsBadData9) *typ3 { return nil },
+			wantErr: "required struct cannot embed *dig.Required",
+		},
+		{
+			name:    "resultsBadData10: embeds *Provided",
+			input:   func() resultsBadData10 { return resultsBadData10{} },
+			wantErr: "provided struct cannot embed *dig.Provided",
+		},
+		{
+			name:    "paramsBadData11: a Provided struct used as a param",
+			input:   func(paramsBadData11) *typ3 { return nil },
+			wantErr: "expected required struct, but got provided struct",
+		},
+		{
+			name:    "resultsBadData12: a Required struct used as a result",
+			input:   func() resultsBadData12 { return resultsBadData12{} },
+			wantErr: "expected provided struct, but got required struct",
+		},
+		{
+			name:    "ResultGroup with passive is rejected",
+			input:   func() *typ1 { return nil },
+			opts:    constructorOptions{ResultGroup: "rain,passive"},
 			wantErr: "passive was incorrectly used",
 		},
 		{
