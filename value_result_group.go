@@ -88,9 +88,9 @@ func newValueResultGroup(sf reflect.StructField) (valueResultGroup, error) {
 		return rg, newErrInvalidInput(fmt.Sprintf(
 			"in provided struct, only slice field can use group struct tag with flatten: field %q (%v) is not a slice", sf.Name, sf.Type), nil)
 
-	case g.Soft:
+	case g.Passive:
 		return rg, newErrInvalidInput(fmt.Sprintf(
-			"cannot use group struct tag with soft in provided struct: soft was incorrectly used in group %q",
+			"cannot use group struct tag with passive in provided struct: passive was incorrectly used in group %q",
 			rg.GroupName), nil)
 
 	case nameTag != "":

@@ -16,10 +16,10 @@ type valueParamGroup struct {
 	// ValueType of the slice.
 	ValueType reflect.Type
 
-	// Soft is used to denote a soft dependency between this param and its
-	// constructors, if it's true its constructors are only called if they
-	// provide another value requested in the graph
-	Soft bool
+	// Passive is used to denote a passive dependency between this param and its
+	// constructors: if true, its constructors are only called if they provide
+	// another value requested in the graph
+	Passive bool
 }
 
 var _ func(reflect.StructField) (valueParamGroup, error) = newValueParamGroup
@@ -33,11 +33,11 @@ func (pg valueParamGroup) String() string {
 // keyed by the element type of the slice. Group providers emit their results
 // under the same key, so all providers of a group map to one resource.
 //
-// Soft groups are not reported: graph edges are "must build" edges, and a
-// soft group must not force its providers to run. It is populated with
+// Passive groups are not reported: graph edges are "must build" edges, and a
+// passive group must not force its providers to run. It is populated with
 // whatever was built for another reason, falling back to an empty slice.
 func (pg valueParamGroup) Requires() []resourceKey {
-	if pg.Soft {
+	if pg.Passive {
 		return nil
 	}
 	return []resourceKey{
@@ -68,7 +68,7 @@ func newValueParamGroup(sf reflect.StructField) (valueParamGroup, error) {
 	pg := valueParamGroup{
 		GroupName: g.Name,
 		ValueType: sf.Type,
-		Soft:      g.Soft,
+		Passive:   g.Passive,
 	}
 
 	nameTag := sf.Tag.Get(_nameTag)

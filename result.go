@@ -82,9 +82,9 @@ func newResult(typ reflect.Type, opts resultOptions) (result, error) {
 				rg.As = asTypes[1:]
 			}
 		}
-		if g.Soft {
+		if g.Passive {
 			return nil, newErrInvalidInput(fmt.Sprintf(
-				"cannot use group struct tag with soft in provided struct: soft was incorrectly used in group %q", g.Name), nil)
+				"cannot use group struct tag with passive in provided struct: passive was incorrectly used in group %q", g.Name), nil)
 		}
 		if g.Flatten {
 			if typ.Kind() != reflect.Slice {

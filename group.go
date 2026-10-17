@@ -5,7 +5,7 @@ import "strings"
 type group struct {
 	Name    string
 	Flatten bool
-	Soft    bool
+	Passive bool
 }
 
 func parseGroupString(s string) (group, error) {
@@ -15,8 +15,8 @@ func parseGroupString(s string) (group, error) {
 		switch c {
 		case "flatten":
 			g.Flatten = true
-		case "soft":
-			g.Soft = true
+		case "passive":
+			g.Passive = true
 		default:
 			return g, errInvalidGroupOption{Option: c}
 		}
