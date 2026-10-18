@@ -5,8 +5,7 @@ import (
 	"reflect"
 )
 
-// resourceType identifies one required or supplied resource of a node.
-// The DAG expands each required resource into an edge per provider.
+// resourceType describes a required or supplied resource of a node in DAG.
 type resourceType struct {
 	valueType reflect.Type
 
