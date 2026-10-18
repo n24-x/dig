@@ -97,39 +97,38 @@ func newParameterObject(typ reflect.Type) (parameterObject, error) {
 	return ro, nil
 }
 
-func newParameterObjectField(idx int, f reflect.StructField) (parameterObjectField, error) {
-	pof := parameterObjectField{
-		FieldName:  f.Name,
-		FieldIndex: idx,
-	}
-
+func newParameterObjectField(idx int, sf reflect.StructField) (parameterObjectField, error) {
 	var p param
 	switch {
-	case f.PkgPath != "":
-		return pof, newErrInvalidInput(
+	case sf.PkgPath != "":
+		return parameterObjectField{}, newErrInvalidInput(
 			fmt.Sprintf("unexported fields not allowed in dig.Required, "+
-				"did you mean to export %q (%v)?", f.Name, f.Type), nil)
+				"did you mean to export %q (%v)?", sf.Name, sf.Type), nil)
 
-	case f.Tag.Get(_groupTag) != "":
+	case isError(sf.Type):
+		return parameterObjectField{}, newErrInvalidInput("cannot handle error here, return it from"+
+			" the constructor instead", nil)
+
+	case sf.Tag.Get(_groupTag) != "":
 		var err error
-		p, err = newValueParamGroup(f)
+		p, err = newValueParamGroup(sf)
 		if err != nil {
-			return pof, err
+			return parameterObjectField{}, err
 		}
 
 	default:
 		var err error
-		p, err = newParam(f.Type)
+		p, err = newParam(sf.Type)
 		if err != nil {
-			return pof, err
+			return parameterObjectField{}, err
 		}
 	}
 
 	if ps, ok := p.(valueParam); ok {
-		ps.ValueName = f.Tag.Get(_nameTag)
+		ps.ValueName = sf.Tag.Get(_nameTag)
 
 		var err error
-		ps.Optional, err = isFieldOptional(f)
+		ps.Optional, err = isFieldOptional(sf)
 		if err != nil {
 			return parameterObjectField{}, err
 		}
@@ -137,6 +136,9 @@ func newParameterObjectField(idx int, f reflect.StructField) (parameterObjectFie
 		p = ps
 	}
 
-	pof.Param = p
-	return pof, nil
+	return parameterObjectField{
+		FieldName:  sf.Name,
+		FieldIndex: idx,
+		Param:      p,
+	}, nil
 }

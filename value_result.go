@@ -44,7 +44,7 @@ func newResult(typ reflect.Type, opts resultOptions) (result, error) {
 			"expected return-struct, but got parameter-struct: %v embeds a dig.Required", typ), nil)
 
 	case isError(typ):
-		return nil, newErrInvalidInput("cannot return an error here, return it from the constructor instead", nil)
+		return nil, newErrInvalidInput("cannot handle error here, return it from the constructor instead", nil)
 
 	case IsProvided(typ):
 		return newReturnObject(typ, opts)

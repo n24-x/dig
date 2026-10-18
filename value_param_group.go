@@ -65,32 +65,31 @@ func newValueParamGroup(sf reflect.StructField) (valueParamGroup, error) {
 		return valueParamGroup{}, err
 	}
 
-	pg := valueParamGroup{
-		GroupName: g.Name,
-		ValueType: sf.Type,
-		Passive:   g.Passive,
-	}
-
 	nameTag := sf.Tag.Get(_nameTag)
 	optionalTag, _ := isFieldOptional(sf)
 	switch {
 	case sf.Type.Kind() != reflect.Slice:
-		return pg, newErrInvalidInput(
+		return valueParamGroup{}, newErrInvalidInput(
 			fmt.Sprintf(
 				"in parameter-struct, only slice field can use group-tag: field %q (%v) is not a slice",
 				sf.Name,
 				sf.Type,
 			), nil)
 	case g.Flatten:
-		return pg, newErrInvalidInput(
+		return valueParamGroup{}, newErrInvalidInput(
 			fmt.Sprintf("cannot use group-tag with flatten in parameter-struct: "+
 				"field %q (%v) specifies flatten", sf.Name, sf.Type), nil)
 	case nameTag != "":
-		return pg, newErrInvalidInput(
+		return valueParamGroup{}, newErrInvalidInput(
 			fmt.Sprintf("cannot use name-tag with group-tag: "+
-				"name-tag %q used with group-tag %q", nameTag, pg.GroupName), nil)
+				"name-tag %q used with group-tag %q", nameTag, g.Name), nil)
 	case optionalTag:
-		return pg, newErrInvalidInput("cannot use optional-tag with group-tag", nil)
+		return valueParamGroup{}, newErrInvalidInput("cannot use optional-tag with group-tag", nil)
 	}
-	return pg, nil
+
+	return valueParamGroup{
+		GroupName: g.Name,
+		ValueType: sf.Type,
+		Passive:   g.Passive,
+	}, nil
 }
