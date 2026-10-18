@@ -8,7 +8,7 @@ import (
 	"github.com/n24-x/dig/internal/dot"
 )
 
-// requiredObject is a dig.Required struct where each field is another param.
+// requiredObject is a parameter struct where each field is another param.
 //
 // This object is not expected in the graph as-is.
 type requiredObject struct {
@@ -19,7 +19,7 @@ type requiredObject struct {
 
 var _ func(reflect.Type) (requiredObject, error) = newRequiredObject
 
-// requiredObjectField is a single field of a dig.Required struct.
+// requiredObjectField is a single field of a parameter struct.
 type requiredObjectField struct {
 	// Name of the field in the struct.
 	FieldName string
@@ -61,7 +61,7 @@ func (ro requiredObject) DotParams() []*dot.Param {
 }
 
 // newRequiredObject builds a requiredObject from the provided type.
-// The type MUST be a dig.Required struct.
+// The type MUST be a parameter struct.
 func newRequiredObject(typ reflect.Type) (requiredObject, error) {
 	ro := requiredObject{Type: typ}
 

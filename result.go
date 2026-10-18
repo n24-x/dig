@@ -41,7 +41,7 @@ func newResult(typ reflect.Type, opts resultOptions) (result, error) {
 		(typ.Kind() == reflect.Pointer && IsRequired(typ.Elem())) ||
 		embedsType(typ, _requiredPtrType):
 		return nil, newErrInvalidInput(fmt.Sprintf(
-			"expected provided struct, but got required struct: %v embeds a dig.Required", typ), nil)
+			"expected return-struct, but got parameter-struct: %v embeds a dig.Required", typ), nil)
 
 	case isError(typ):
 		return nil, newErrInvalidInput("cannot return an error here, return it from the constructor instead", nil)
@@ -51,19 +51,19 @@ func newResult(typ reflect.Type, opts resultOptions) (result, error) {
 
 	case embedsType(typ, _providedPtrType):
 		return nil, newErrInvalidInput(fmt.Sprintf(
-			"provided struct cannot embed *dig.Provided, "+
+			"return-struct cannot embed *dig.Provided, "+
 				"embed dig.Provided instead: %v embeds *dig.Provided", typ), nil)
 
 	case typ.Kind() == reflect.Pointer && IsProvided(typ.Elem()):
 		return nil, newErrInvalidInput(fmt.Sprintf(
-			"cannot use pointer as provided struct, use a value instead:"+
+			"cannot use pointer as return-struct, use a value instead:"+
 				" %v is a pointer to a struct that embeds dig.Provided", typ), nil)
 
 	case opts.Group != "":
 		g, err := parseGroupString(opts.Group)
 		if err != nil {
 			return nil, newErrInvalidInput(
-				fmt.Sprintf("cannot parse group tag value %q", opts.Group), err)
+				fmt.Sprintf("cannot parse group-tag value %q", opts.Group), err)
 		}
 		rg := valueResultGroup{ValueType: typ, GroupName: g.Name, Flatten: g.Flatten}
 		if len(opts.As) > 0 {
@@ -86,13 +86,13 @@ func newResult(typ reflect.Type, opts resultOptions) (result, error) {
 		}
 		if g.Passive {
 			return nil, newErrInvalidInput(fmt.Sprintf(
-				"cannot use group struct tag with passive in provided struct:"+
+				"cannot use group-tag with passive in return-struct:"+
 					" passive was incorrectly used in group %q", g.Name), nil)
 		}
 		if g.Flatten {
 			if typ.Kind() != reflect.Slice {
 				return nil, newErrInvalidInput(fmt.Sprintf(
-					"in provided struct, only slice field can use group struct tag with flatten:"+
+					"in return-struct, only slice field can use group-tag with flatten:"+
 						" %v is not a slice", typ), nil)
 			}
 			rg.ValueType = rg.ValueType.Elem()

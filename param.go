@@ -26,7 +26,7 @@ var (
 
 var _ func(reflect.Type) (param, error) = newParam
 
-// newParam builds a param from the given typ. If the typ is a dig.Required
+// newParam builds a param from the given typ. If the typ is a parameter
 // struct, a requiredObject will be returned.
 func newParam(typ reflect.Type) (param, error) {
 	switch {
@@ -36,18 +36,18 @@ func newParam(typ reflect.Type) (param, error) {
 
 		return nil, newErrInvalidInput(
 			fmt.Sprintf(
-				"expected required struct, but got provided struct: %v embeds a dig.Provided",
+				"expected parameter-struct, but got return-struct: %v embeds a dig.Provided",
 				typ,
 			), nil)
 
 	case embedsType(typ, _requiredPtrType):
 		return nil, newErrInvalidInput(fmt.Sprintf(
-			"required struct cannot embed *dig.Required, embed dig.Required instead: %v embeds *dig.Required",
+			"parameter-struct cannot embed *dig.Required, embed dig.Required instead: %v embeds *dig.Required",
 			typ), nil)
 
 	case typ.Kind() == reflect.Pointer && IsRequired(typ.Elem()):
 		return nil, newErrInvalidInput(fmt.Sprintf(
-			"cannot use a pointer as required struct, use a value instead:"+
+			"cannot use a pointer as parameter-struct, use a value instead:"+
 				" %v is a pointer to a struct that embeds dig.Required", typ), nil)
 
 	case IsRequired(typ):

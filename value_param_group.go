@@ -77,20 +77,20 @@ func newValueParamGroup(sf reflect.StructField) (valueParamGroup, error) {
 	case sf.Type.Kind() != reflect.Slice:
 		return pg, newErrInvalidInput(
 			fmt.Sprintf(
-				"in required struct, only slice field can use group tag: field %q (%v) is not a slice",
+				"in parameter-struct, only slice field can use group-tag: field %q (%v) is not a slice",
 				sf.Name,
 				sf.Type,
 			), nil)
 	case g.Flatten:
 		return pg, newErrInvalidInput(
-			fmt.Sprintf("cannot use group struct tag with flatten in required struct: "+
+			fmt.Sprintf("cannot use group-tag with flatten in parameter-struct: "+
 				"field %q (%v) specifies flatten", sf.Name, sf.Type), nil)
 	case nameTag != "":
 		return pg, newErrInvalidInput(
-			fmt.Sprintf("cannot use name struct tag with group tag: "+
-				"name tag %q used with group tag %q", nameTag, pg.GroupName), nil)
+			fmt.Sprintf("cannot use name-tag with group-tag: "+
+				"name-tag %q used with group-tag %q", nameTag, pg.GroupName), nil)
 	case optionalTag:
-		return pg, newErrInvalidInput("cannot use optional struct tag with group tag", nil)
+		return pg, newErrInvalidInput("cannot use optional-tag with group-tag", nil)
 	}
 	return pg, nil
 }

@@ -45,7 +45,7 @@ func TestNewConstructorNodeGoodCases(t *testing.T) {
 			wantProvides: []resourceKey{kTyp1},
 		},
 		{
-			name:         "requiredParamsGoodData1: required struct is flattened",
+			name:         "requiredParamsGoodData1: parameter-struct is flattened",
 			input:        func(requiredParamsGoodData1) *typ3 { return nil },
 			wantRequires: []resourceKey{kTyp1, kTyp2Named},
 			wantProvides: []resourceKey{kTyp3},
@@ -81,7 +81,7 @@ func TestNewConstructorNodeGoodCases(t *testing.T) {
 			wantProvides: []resourceKey{kTyp3},
 		},
 		{
-			name:         "providedResultsGoodData7: provided struct is flattened",
+			name:         "providedResultsGoodData7: return-struct is flattened",
 			input:        func() providedResultsGoodData7 { return providedResultsGoodData7{} },
 			wantProvides: []resourceKey{kTyp1, kTyp2Named},
 		},
@@ -136,14 +136,14 @@ func TestNewConstructorNodeBadCases(t *testing.T) {
 		wantErr string
 	}{
 		{
-			name:    "param is a pointer to a required struct",
+			name:    "param is a pointer to a parameter-struct",
 			input:   func(*requiredParamsGoodData1) *typ3 { return nil },
-			wantErr: "cannot use a pointer as required struct",
+			wantErr: "cannot use a pointer as parameter-struct",
 		},
 		{
-			name:    "result is a pointer to a provided struct",
+			name:    "result is a pointer to a return-struct",
 			input:   func() *providedResultsGoodData7 { return nil },
-			wantErr: "cannot use pointer as provided struct",
+			wantErr: "cannot use pointer as return-struct",
 		},
 		{
 			name:    "paramsBadData1: optional value is not a valid bool",
@@ -153,22 +153,22 @@ func TestNewConstructorNodeBadCases(t *testing.T) {
 		{
 			name:    "resultsBadData2: optional is not allowed",
 			input:   func() resultsBadData2 { return resultsBadData2{} },
-			wantErr: "cannot use optional struct tag in provided struct",
+			wantErr: "cannot use optional-tag in return-struct",
 		},
 		{
 			name:    "paramsBadData3: group can only be used on slices",
 			input:   func(paramsBadData3) *typ3 { return nil },
-			wantErr: "only slice field can use group tag",
+			wantErr: "only slice field can use group-tag",
 		},
 		{
 			name:    "paramsBadData4: group conflicts with name",
 			input:   func(paramsBadData4) *typ3 { return nil },
-			wantErr: "cannot use name struct tag with group tag",
+			wantErr: "cannot use name-tag with group-tag",
 		},
 		{
 			name:    "resultsBadData5: group conflicts with name/optional",
 			input:   func() resultsBadData5 { return resultsBadData5{} },
-			wantErr: "cannot use optional struct tag in provided struct",
+			wantErr: "cannot use optional-tag in return-struct",
 		},
 		{
 			name:    "resultsBadData6: error is not a valid result field",
@@ -183,27 +183,27 @@ func TestNewConstructorNodeBadCases(t *testing.T) {
 		{
 			name:    "resultsBadData8: unexported field",
 			input:   func() resultsBadData8 { return resultsBadData8{} },
-			wantErr: "unexported fields not allowed in provided struct",
+			wantErr: "unexported fields not allowed in return-struct",
 		},
 		{
 			name:    "paramsBadData9: embeds *Required",
 			input:   func(paramsBadData9) *typ3 { return nil },
-			wantErr: "required struct cannot embed *dig.Required",
+			wantErr: "parameter-struct cannot embed *dig.Required",
 		},
 		{
 			name:    "resultsBadData10: embeds *Provided",
 			input:   func() resultsBadData10 { return resultsBadData10{} },
-			wantErr: "provided struct cannot embed *dig.Provided",
+			wantErr: "return-struct cannot embed *dig.Provided",
 		},
 		{
-			name:    "paramsBadData11: a Provided struct used as a param",
+			name:    "paramsBadData11: a return-struct used as a param",
 			input:   func(paramsBadData11) *typ3 { return nil },
-			wantErr: "expected required struct, but got provided struct",
+			wantErr: "expected parameter-struct, but got return-struct",
 		},
 		{
-			name:    "resultsBadData12: a Required struct used as a result",
+			name:    "resultsBadData12: a parameter-struct used as a result",
 			input:   func() resultsBadData12 { return resultsBadData12{} },
-			wantErr: "expected provided struct, but got required struct",
+			wantErr: "expected return-struct, but got parameter-struct",
 		},
 		{
 			name:    "ResultGroup with passive is rejected",
