@@ -5,8 +5,9 @@ import (
 	"reflect"
 )
 
-// resourceID uniquely identifies a node in the dag.
-type resourceID struct {
+// resourceType identifies one required or supplied resource of a node.
+// The DAG expands each required resource into an edge per provider.
+type resourceType struct {
 	valueType reflect.Type
 
 	// Only one of valueName or groupName will be set.
@@ -14,9 +15,9 @@ type resourceID struct {
 	groupName string
 }
 
-var _ fmt.Stringer = resourceID{}
+var _ fmt.Stringer = resourceType{}
 
-func (k resourceID) String() string {
+func (k resourceType) String() string {
 	if k.valueName != "" {
 		return fmt.Sprintf("%v[name=%q]", k.valueType, k.valueName)
 	}

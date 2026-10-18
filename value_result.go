@@ -9,7 +9,7 @@ import (
 
 // The result interface represents a result produced by a constructor.
 type result interface {
-	Provides() []resourceID
+	Provides() []resourceType
 
 	// TODO
 	// Extract(containerWriter, bool, reflect.Value)
