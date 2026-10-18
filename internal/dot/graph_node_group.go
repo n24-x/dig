@@ -39,13 +39,13 @@ func (g *Group) removeResult(r *Result) {
 	g.Results = pruned
 }
 
-// String implements fmt.Stringer for Group.
-func (g *Group) String() string {
+// DotString returns the identifier used for this node in DOT output.
+func (g *Group) DotString() string {
 	return fmt.Sprintf("[type=%v group=%v]", g.ValueType.String(), g.Name)
 }
 
-// Attributes composes and returns a string of the Group node's attributes.
-func (g *Group) Attributes() string {
+// DotAttributes composes and returns a string of the Group node's attributes.
+func (g *Group) DotAttributes() string {
 	attr := fmt.Sprintf(
 		`shape=diamond label=<%v<BR /><FONT POINT-SIZE="10">Group: %v</FONT>>`,
 		g.ValueType,

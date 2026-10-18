@@ -15,8 +15,11 @@ type Result struct {
 	IndexInGroup int
 }
 
-// String implements fmt.Stringer for Result.
-func (r *Result) String() string {
+// DotString returns the identifier used for this node in DOT output.
+//
+// The index disambiguates grouped values, which otherwise share a type and
+// group and would collapse into the same node.
+func (r *Result) DotString() string {
 	switch {
 	case r.ValueName != "":
 		return fmt.Sprintf("%v[name=%v]", r.ValueType.String(), r.ValueName)
@@ -27,8 +30,8 @@ func (r *Result) String() string {
 	}
 }
 
-// Attributes composes and returns a string of the Result node's attributes.
-func (r *Result) Attributes() string {
+// DotAttributes composes and returns a string of the Result node's attributes.
+func (r *Result) DotAttributes() string {
 	switch {
 	case r.ValueName != "":
 		return fmt.Sprintf(`label=<%v<BR /><FONT POINT-SIZE="10">Name: %v</FONT>>`,

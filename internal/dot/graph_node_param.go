@@ -9,8 +9,8 @@ type Param struct {
 	Optional bool
 }
 
-// String implements fmt.Stringer for Param.
-func (p *Param) String() string {
+// DotString returns the identifier used for this node in DOT output.
+func (p *Param) DotString() string {
 	if p.ValueName != "" {
 		return fmt.Sprintf("%v[name=%v]", p.ValueType.String(), p.ValueName)
 	}
