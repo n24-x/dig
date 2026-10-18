@@ -7,85 +7,98 @@ import (
 	"github.com/n24-x/dig/internal/dot"
 )
 
-// valueResult is an explicit value produced by a constructor, optionally
-// with a name and/or extra As types.
-type valueResult struct {
-	ValueName string
-	ValueType reflect.Type
+// The result interface represents a result produced by a constructor.
+type result interface {
+	Provides() []resourceID
 
-	As []reflect.Type
+	// TODO
+	// Extract(containerWriter, bool, reflect.Value)
+
+	DotResults() []*dot.Result
 }
 
-var _ func(reflect.Type, resultOptions) (valueResult, error) = newValueResult
-
-func (r valueResult) Provides() []resourceID {
-	keys := []resourceID{
-		{
-			valueType: r.ValueType,
-			valueName: r.ValueName,
-		},
-	}
-	for _, typ := range r.As {
-		keys = append(keys, resourceID{
-			valueType: typ,
-			valueName: r.ValueName,
-		})
-	}
-	return keys
+type resultOptions struct {
+	// If set, this is the name of the associated result value.
+	//
+	// For Result Objects, name:".." tags on fields override this.
+	Name  string
+	Group string
+	As    []any
 }
 
-func (r valueResult) DotResults() []*dot.Result {
-	dotResults := []*dot.Result{
-		{
-			Node: &dot.Node{
-				ValueType: r.ValueType,
-				ValueName: r.ValueName,
-			},
-		},
-	}
-	if len(r.As) > 0 {
-		for _, typ := range r.As {
-			dotResults = append(dotResults, &dot.Result{
-				Node: &dot.Node{
-					ValueType: typ,
-					ValueName: r.ValueName,
-				},
-			})
+var (
+	_ result = valueResult{}
+	_ result = returnObject{}
+	_ result = valueResultGroup{}
+)
+
+var _ func(reflect.Type, resultOptions) (result, error) = newResult
+
+// newResult builds a result from the given typ.
+func newResult(typ reflect.Type, opts resultOptions) (result, error) {
+	switch {
+	case IsRequired(typ) ||
+		(typ.Kind() == reflect.Pointer && IsRequired(typ.Elem())) ||
+		embedsType(typ, _requiredPtrType):
+		return nil, newErrInvalidInput(fmt.Sprintf(
+			"expected return-struct, but got parameter-struct: %v embeds a dig.Required", typ), nil)
+
+	case isError(typ):
+		return nil, newErrInvalidInput("cannot return an error here, return it from the constructor instead", nil)
+
+	case IsProvided(typ):
+		return newReturnObject(typ, opts)
+
+	case embedsType(typ, _providedPtrType):
+		return nil, newErrInvalidInput(fmt.Sprintf(
+			"return-struct cannot embed *dig.Provided, "+
+				"embed dig.Provided instead: %v embeds *dig.Provided", typ), nil)
+
+	case typ.Kind() == reflect.Pointer && IsProvided(typ.Elem()):
+		return nil, newErrInvalidInput(fmt.Sprintf(
+			"cannot use pointer as return-struct, use a value instead:"+
+				" %v is a pointer to a struct that embeds dig.Provided", typ), nil)
+
+	case opts.Group != "":
+		g, err := parseGroupString(opts.Group)
+		if err != nil {
+			return nil, newErrInvalidInput(
+				fmt.Sprintf("cannot parse group-tag value %q", opts.Group), err)
 		}
-	}
-	return dotResults
-}
-
-func newValueResult(typ reflect.Type, opts resultOptions) (valueResult, error) {
-	r := valueResult{
-		ValueType: typ,
-		ValueName: opts.Name,
-	}
-
-	var asTypes []reflect.Type
-	for _, as := range opts.As {
-		ifaceType := reflect.TypeOf(as).Elem()
-		if ifaceType == typ {
-			// Special case:
-			//   c.Resource(func() io.Reader, As(new(io.Reader)))
-			// Ignore instead of erroring out.
-			continue
+		rg := valueResultGroup{ValueType: typ, GroupName: g.Name, Flatten: g.Flatten}
+		if len(opts.As) > 0 {
+			var asTypes []reflect.Type
+			for _, as := range opts.As {
+				ifaceType := reflect.TypeOf(as).Elem() // TODO validate nil
+				if ifaceType == typ {
+					continue // ignore
+				}
+				if !typ.Implements(ifaceType) {
+					return nil, newErrInvalidInput(
+						fmt.Sprintf("invalid dig.As: %v does not implement %v", typ, ifaceType), nil)
+				}
+				asTypes = append(asTypes, ifaceType)
+			}
+			if len(asTypes) > 0 {
+				rg.ValueType = asTypes[0]
+				rg.As = asTypes[1:]
+			}
 		}
-		if !typ.Implements(ifaceType) {
-			return r, newErrInvalidInput(
-				fmt.Sprintf("invalid dig.As: %v does not implement %v",
-					typ, ifaceType), nil)
+		if g.Passive {
+			return nil, newErrInvalidInput(fmt.Sprintf(
+				"cannot use group-tag with passive in return-struct:"+
+					" passive was incorrectly used in group %q", g.Name), nil)
 		}
-		asTypes = append(asTypes, ifaceType)
+		if g.Flatten {
+			if typ.Kind() != reflect.Slice {
+				return nil, newErrInvalidInput(fmt.Sprintf(
+					"in return-struct, only slice field can use group-tag with flatten:"+
+						" %v is not a slice", typ), nil)
+			}
+			rg.ValueType = rg.ValueType.Elem()
+		}
+		return rg, nil
+	default:
+		return newValueResult(typ, opts)
 	}
-
-	if len(asTypes) == 0 {
-		return r, nil
-	}
-
-	return valueResult{
-		ValueType: asTypes[0],
-		ValueName: opts.Name,
-		As:        asTypes[1:],
-	}, nil
 }
