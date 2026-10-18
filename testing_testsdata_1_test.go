@@ -213,3 +213,13 @@ type resultsBadData12 struct {
 }
 
 var _ = resultsBadData12{}
+
+// Bad Data 13
+// param side: flatten is not allowed in parameter-struct
+type paramsBadData13 struct {
+	Required
+
+	A []*typ1 `group:"rain,flatten"`
+}
+
+var _ = paramsBadData13{}

@@ -206,6 +206,11 @@ func TestNewConstructorNodeBadCases(t *testing.T) {
 			wantErr: "expected return-struct, but got parameter-struct",
 		},
 		{
+			name:    "paramsBadData13: flatten is not allowed in parameter-struct",
+			input:   func(paramsBadData13) *typ3 { return nil },
+			wantErr: "cannot use group-tag with flatten in parameter-struct",
+		},
+		{
 			name:    "ResultGroup with passive is rejected",
 			input:   func() *typ1 { return nil },
 			opts:    constructorOptions{ResultGroup: "rain,passive"},
