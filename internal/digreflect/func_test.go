@@ -146,6 +146,14 @@ func TestFuncFormatting(t *testing.T) {
 		`"foo/bar/baz".Qux (src/foo/bar/baz/qux.go:42)`,
 		f.String(), "%v did not match")
 
+	assert.Equal(t,
+		`"foo/bar/baz".Qux (src/foo/bar/baz/qux.go:42)`,
+		fmt.Sprintf("%v", &f), "%v did not match")
+
+	assert.Equal(t,
+		`foo/bar/baz.Qux`,
+		fmt.Sprintf("%s", &f), "%s did not match")
+
 	assert.Equal(t, `"foo/bar/baz".Qux
-	src/foo/bar/baz/qux.go:42`, fmt.Sprintf("%+v", &f), "%v did not match")
+	src/foo/bar/baz/qux.go:42`, fmt.Sprintf("%+v", &f), "%+v did not match")
 }
