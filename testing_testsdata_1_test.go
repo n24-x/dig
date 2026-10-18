@@ -205,7 +205,7 @@ type paramsBadData11 struct {
 var _ = paramsBadData11{}
 
 // Bad Data 12
-// a Required struct used as a result
+// a parameter-struct used as a result
 type resultsBadData12 struct {
 	Required
 

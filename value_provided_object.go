@@ -58,15 +58,15 @@ func newProvidedObject(typ reflect.Type, opts resultOptions) (providedObject, er
 
 	if opts.Name != "" {
 		return providedObject{}, newErrInvalidInput(fmt.Sprintf(
-			"cannot use dig.Name with provided struct: %v embeds dig.Provided", typ), nil)
+			"cannot use dig.Name with return-struct: %v embeds dig.Provided", typ), nil)
 	}
 	if opts.Group != "" {
 		return providedObject{}, newErrInvalidInput(fmt.Sprintf(
-			"cannot use dig.Group with provided struct: %v embeds dig.Provided", typ), nil)
+			"cannot use dig.Group with return-struct: %v embeds dig.Provided", typ), nil)
 	}
 	if len(opts.As) > 0 {
 		return providedObject{}, newErrInvalidInput(fmt.Sprintf(
-			"cannot use dig.As with provided struct: %v embeds dig.Provided", typ), nil)
+			"cannot use dig.As with return-struct: %v embeds dig.Provided", typ), nil)
 	}
 
 	for i := range typ.NumField() {
@@ -99,13 +99,13 @@ func newProvidedObjectField(index int, sf reflect.StructField, opts resultOption
 	switch {
 	case sf.PkgPath != "":
 		return providedObjectField{}, newErrInvalidInput(
-			fmt.Sprintf("unexported fields not allowed in provided struct, did you mean to export %q (%v)?",
+			fmt.Sprintf("unexported fields not allowed in return-struct, did you mean to export %q (%v)?",
 				sf.Name, sf.Type), nil)
 
 	case sf.Tag.Get(_optionalTag) != "":
 		return providedObjectField{}, newErrInvalidInput(
-			fmt.Sprintf("cannot use optional struct tag in provided struct: "+
-				"field %q (%v) has optional tag",
+			fmt.Sprintf("cannot use optional-tag in return-struct: "+
+				"field %q (%v) has optional-tag",
 				sf.Name,
 				sf.Type,
 			), nil)
