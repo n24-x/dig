@@ -27,7 +27,6 @@ type constructorNode struct {
 
 var (
 	_ dag.Node[resourceType]                   = (*constructorNode)(nil)
-	_ fmt.Stringer                             = (*constructorNode)(nil)
 	_ interface{ Location() *digreflect.Func } = (*constructorNode)(nil)
 	_ interface{ ParamList() paramList }       = (*constructorNode)(nil)
 	_ interface{ ResultList() resultList }     = (*constructorNode)(nil)
@@ -89,6 +88,10 @@ func newConstructorNode(ctor any, opts constructorOptions) (*constructorNode, er
 	return cn, nil
 }
 
+func (cn *constructorNode) String() string {
+	return fmt.Sprintf("[%v]", cn.location)
+}
+
 func (cn *constructorNode) Requires() []resourceType {
 	return cn.paramList.Requires()
 }
@@ -102,7 +105,3 @@ func (cn *constructorNode) ParamList() paramList       { return cn.paramList }
 func (cn *constructorNode) ResultList() resultList     { return cn.resultList }
 func (cn *constructorNode) ID() dot.ConstructorID      { return cn.constructorID }
 func (cn *constructorNode) CType() reflect.Type        { return cn.ctype }
-
-func (cn *constructorNode) String() string {
-	return fmt.Sprintf("deps: %v, ctor: %v", cn.paramList, cn.ctype)
-}

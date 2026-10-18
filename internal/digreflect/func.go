@@ -21,15 +21,25 @@ type Func struct {
 	Line int
 }
 
-// String returns a string representation of the function.
+// String returns a single-line representation of the function, including its
+// file and line number. It is equivalent to fmt's %v.
+//
+// Use %s for the compact package.name identifier without quoting or position.
 func (f *Func) String() string {
 	return fmt.Sprint(f)
 }
 
-// Format implements fmt.Formatter for Func, printing a single-line
-// representation for %v and a multi-line one for %+v.
+// Format implements fmt.Formatter for Func, so a function can be rendered in
+// three ways:
+//
+//   - %s: compact, unquoted package.name, without the file and line.
+//   - %v: package.name followed by the file and line in parentheses.
+//   - %+v: package.name on one line, file and line indented on the next.
 func (f *Func) Format(w fmt.State, c rune) {
-	if w.Flag('+') && c == 'v' {
+	if c == 's' {
+		// package.name
+		_, _ = fmt.Fprintf(w, "%s.%s", f.Package, f.Name)
+	} else if w.Flag('+') && c == 'v' {
 		// "path/to/package".MyFunction
 		// 	path/to/file.go:42
 		_, _ = fmt.Fprintf(w, "%q.%v", f.Package, f.Name)
