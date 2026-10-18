@@ -26,14 +26,14 @@ func visualizeGraph(w io.Writer, dg *dot.Graph) {
 		_, _ = fmt.Fprintf(
 			w,
 			"\t%s [color=orange];\n",
-			strconv.Quote(f.String()),
+			strconv.Quote(f.DotString()),
 		)
 	}
 	for _, f := range dg.Failed.RootCauses {
 		_, _ = fmt.Fprintf(
 			w,
 			"\t%s [color=red];\n",
-			strconv.Quote(f.String()),
+			strconv.Quote(f.DotString()),
 		)
 	}
 	_, _ = w.Write([]byte("}"))
@@ -49,15 +49,15 @@ func visualizeGroup(w io.Writer, g *dot.Group) {
 	_, _ = fmt.Fprintf(
 		w,
 		"\t%s [%s];\n",
-		strconv.Quote(g.String()),
-		g.Attributes(),
+		strconv.Quote(g.DotString()),
+		g.DotAttributes(),
 	)
 	for _, r := range g.Results {
 		_, _ = fmt.Fprintf(
 			w,
 			"\t%s -> %s;\n",
-			strconv.Quote(g.String()),
-			strconv.Quote(r.String()),
+			strconv.Quote(g.DotString()),
+			strconv.Quote(r.DotString()),
 		)
 	}
 }
@@ -93,8 +93,8 @@ func visualizeConstructor(w io.Writer, index int, ctor *dot.Constructor) {
 		_, _ = fmt.Fprintf(
 			w,
 			"\t\t%s [shape=ellipse, %s];\n",
-			strconv.Quote(r.String()),
-			r.Attributes(),
+			strconv.Quote(r.DotString()),
+			r.DotAttributes(),
 		)
 	}
 
@@ -110,7 +110,7 @@ func visualizeConstructor(w io.Writer, index int, ctor *dot.Constructor) {
 			w,
 			"\tconstructor_%d -> %s [ltail=cluster_%d%s];\n",
 			index,
-			strconv.Quote(p.String()),
+			strconv.Quote(p.DotString()),
 			index,
 			optionalStyle,
 		)
@@ -121,7 +121,7 @@ func visualizeConstructor(w io.Writer, index int, ctor *dot.Constructor) {
 			w,
 			"\tconstructor_%d -> %s [ltail=cluster_%d];\n",
 			index,
-			strconv.Quote(p.String()),
+			strconv.Quote(p.DotString()),
 			index,
 		)
 	}
