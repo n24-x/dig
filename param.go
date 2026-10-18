@@ -10,7 +10,7 @@ import (
 type param interface {
 	fmt.Stringer
 
-	Requires() []resourceKey
+	Requires() []resourceID
 
 	// TODO
 	// Build(containerStore) (reflect.Value, error)

@@ -30,12 +30,12 @@ type returnObjectField struct {
 
 var _ func(int, reflect.StructField, resultOptions) (returnObjectField, error) = newReturnObjectField
 
-func (po returnObject) Provides() []resourceKey {
+func (po returnObject) Provides() []resourceID {
 	if len(po.Fields) == 0 {
-		return []resourceKey{}
+		return []resourceID{}
 	}
 
-	var keys []resourceKey
+	var keys []resourceID
 	for _, f := range po.Fields {
 		keys = append(keys, f.Result.Provides()...)
 	}

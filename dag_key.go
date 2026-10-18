@@ -5,8 +5,8 @@ import (
 	"reflect"
 )
 
-// resourceKey uniquely identifies a node in the dag.
-type resourceKey struct {
+// resourceID uniquely identifies a node in the dag.
+type resourceID struct {
 	valueType reflect.Type
 
 	// Only one of valueName or groupName will be set.
@@ -14,9 +14,9 @@ type resourceKey struct {
 	groupName string
 }
 
-var _ fmt.Stringer = resourceKey{}
+var _ fmt.Stringer = resourceID{}
 
-func (k resourceKey) String() string {
+func (k resourceID) String() string {
 	if k.valueName != "" {
 		return fmt.Sprintf("%v[name=%q]", k.valueType, k.valueName)
 	}

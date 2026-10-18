@@ -14,7 +14,7 @@ type paramList struct {
 
 var (
 	_ interface{ fmt.Stringer }             = paramList{}
-	_ interface{ Requires() []resourceKey } = paramList{}
+	_ interface{ Requires() []resourceID }  = paramList{}
 	_ interface{ DotParams() []*dot.Param } = paramList{}
 	_ func(reflect.Type) (paramList, error) = newParamList
 )
@@ -27,8 +27,8 @@ func (pl paramList) String() string {
 	return fmt.Sprint(params)
 }
 
-func (pl paramList) Requires() []resourceKey {
-	var keys []resourceKey
+func (pl paramList) Requires() []resourceID {
+	var keys []resourceID
 	for _, p := range pl.Params {
 		keys = append(keys, p.Requires()...)
 	}
