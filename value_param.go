@@ -3,69 +3,57 @@ package dig
 import (
 	"fmt"
 	"reflect"
-	"strings"
 
 	"github.com/n24-x/dig/internal/dot"
 )
 
-type valueParam struct {
-	ValueType reflect.Type
-	ValueName string
-	Optional  bool
+type param interface {
+	fmt.Stringer
+
+	Requires() []resourceID
+
+	// TODO
+	// Build(containerStore) (reflect.Value, error)
+
+	DotParams() []*dot.Param
 }
 
-var _ func(reflect.Type) valueParam = newValueParam
+var (
+	_ param = valueParam{}
+	_ param = parameterObject{}
+	_ param = valueParamGroup{}
+)
 
-func (ps valueParam) String() string {
-	// tally.Scope[optional] means optional
-	// tally.Scope[optional, name="foo"] means named optional
+var _ func(reflect.Type) (param, error) = newParam
 
-	var opts []string
-	if ps.Optional {
-		opts = append(opts, "optional")
-	}
-	if ps.ValueName != "" {
-		opts = append(opts, fmt.Sprintf("name=%q", ps.ValueName))
-	}
+// newParam builds a param from the given typ. If the typ is a parameter
+// struct, a parameterObject will be returned.
+func newParam(typ reflect.Type) (param, error) {
+	switch {
+	case IsProvided(typ) ||
+		(typ.Kind() == reflect.Pointer && IsProvided(typ.Elem())) ||
+		embedsType(typ, _providedPtrType):
 
-	if len(opts) == 0 {
-		return fmt.Sprint(ps.ValueType)
-	}
+		return nil, newErrInvalidInput(
+			fmt.Sprintf(
+				"expected parameter-struct, but got return-struct: %v embeds a dig.Provided",
+				typ,
+			), nil)
 
-	return fmt.Sprintf("%v[%v]", ps.ValueType, strings.Join(opts, ", "))
-}
+	case embedsType(typ, _requiredPtrType):
+		return nil, newErrInvalidInput(fmt.Sprintf(
+			"parameter-struct cannot embed *dig.Required, embed dig.Required instead: %v embeds *dig.Required",
+			typ), nil)
 
-// Requires reports the resource this param depends on.
-//
-// Optional params are not reported: graph edges are "must build" edges, so
-// an optional dependency that nobody provides must not fail resolution.
-// Build is responsible for falling back to a zero value.
-func (ps valueParam) Requires() []resourceID {
-	if ps.Optional {
-		return nil
-	}
-	return []resourceID{
-		{
-			valueType: ps.ValueType,
-			valueName: ps.ValueName,
-		},
-	}
-}
+	case typ.Kind() == reflect.Pointer && IsRequired(typ.Elem()):
+		return nil, newErrInvalidInput(fmt.Sprintf(
+			"cannot use a pointer as parameter-struct, use a value instead:"+
+				" %v is a pointer to a struct that embeds dig.Required", typ), nil)
 
-func (ps valueParam) DotParams() []*dot.Param {
-	return []*dot.Param{
-		{
-			Node: &dot.Node{
-				ValueType: ps.ValueType,
-				ValueName: ps.ValueName,
-			},
-			Optional: ps.Optional,
-		},
-	}
-}
+	case IsRequired(typ):
+		return newParameterObject(typ)
 
-func newValueParam(typ reflect.Type) valueParam {
-	return valueParam{
-		ValueType: typ,
+	default:
+		return newValueParam(typ), nil
 	}
 }
