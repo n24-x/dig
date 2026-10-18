@@ -74,39 +74,38 @@ func newValueResultGroup(sf reflect.StructField) (valueResultGroup, error) {
 		return valueResultGroup{}, err
 	}
 
-	rg := valueResultGroup{
-		GroupName: g.Name,
-		Flatten:   g.Flatten,
-		ValueType: sf.Type,
-	}
-
 	nameTag := sf.Tag.Get(_nameTag)
 	optionalTag, _ := isFieldOptional(sf)
 
 	switch {
 	case g.Flatten && sf.Type.Kind() != reflect.Slice:
-		return rg, newErrInvalidInput(fmt.Sprintf(
+		return valueResultGroup{}, newErrInvalidInput(fmt.Sprintf(
 			"in return-struct, only slice field can use group-tag with flatten: "+
 				"field %q (%v) is not a slice", sf.Name, sf.Type), nil)
 
 	case g.Passive:
-		return rg, newErrInvalidInput(fmt.Sprintf(
+		return valueResultGroup{}, newErrInvalidInput(fmt.Sprintf(
 			"cannot use group-tag with passive in return-struct: passive was incorrectly used in group %q",
-			rg.GroupName), nil)
+			g.Name), nil)
 
 	case nameTag != "":
-		return rg, newErrInvalidInput(fmt.Sprintf(
+		return valueResultGroup{}, newErrInvalidInput(fmt.Sprintf(
 			"cannot use name-tag with group-tag: name-tag %q used with group-tag %q",
-			nameTag, rg.GroupName), nil)
+			nameTag, g.Name), nil)
 
 	case optionalTag:
-		return rg, newErrInvalidInput(
+		return valueResultGroup{}, newErrInvalidInput(
 			"cannot use optional-tag with group-tag", nil)
 	}
 
+	valueType := sf.Type
 	if g.Flatten {
-		rg.ValueType = sf.Type.Elem()
+		valueType = valueType.Elem()
 	}
 
-	return rg, nil
+	return valueResultGroup{
+		GroupName: g.Name,
+		Flatten:   g.Flatten,
+		ValueType: valueType,
+	}, nil
 }

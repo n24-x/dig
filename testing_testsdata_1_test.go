@@ -52,15 +52,6 @@ type ignoreUnexportedParamsGoodData5 struct {
 
 var _ = ignoreUnexportedParamsGoodData5{}
 
-type paramsGoodData6 struct {
-	Required
-
-	A         *typ1
-	ErrorType error
-}
-
-var _ = paramsGoodData6{}
-
 // ---- Good cases: results (simple -> complex) ----
 
 type providedResultsGoodData7 struct {
@@ -223,3 +214,54 @@ type paramsBadData13 struct {
 }
 
 var _ = paramsBadData13{}
+
+// Bad Data 14
+// param side: error is not a valid dependency
+type paramsBadData14 struct {
+	Required
+
+	A         *typ1
+	ErrorType error
+}
+
+var _ = paramsBadData14{}
+
+// Bad Data 15
+// param side: error nested in a parameter-struct field
+type paramsBadData15 struct {
+	Required
+
+	A     *typ1
+	Inner paramsBadData15Inner
+}
+
+type paramsBadData15Inner struct {
+	Required
+
+	ErrorType error
+}
+
+var (
+	_ = paramsBadData15{}
+	_ = paramsBadData15Inner{}
+)
+
+// Bad Data 16
+// result side: error nested in a return-struct field
+type resultsBadData16 struct {
+	Provided
+
+	A     *typ1
+	Inner resultsBadData16Inner
+}
+
+type resultsBadData16Inner struct {
+	Provided
+
+	ErrorType error
+}
+
+var (
+	_ = resultsBadData16{}
+	_ = resultsBadData16Inner{}
+)

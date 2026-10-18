@@ -90,13 +90,11 @@ func newReturnObjectField(index int, sf reflect.StructField, opts resultOptions)
 	returnObjectField,
 	error,
 ) {
-	pof := returnObjectField{
-		FieldName:  sf.Name,
-		FieldIndex: index,
-	}
-
 	var r result
 	switch {
+	case isError(sf.Type):
+		return returnObjectField{}, newErrInvalidInput("cannot handle error here, return it from"+
+			" the constructor instead", nil)
 	case sf.PkgPath != "":
 		return returnObjectField{}, newErrInvalidInput(
 			fmt.Sprintf("unexported fields not allowed in return-struct, did you mean to export %q (%v)?",
@@ -129,6 +127,9 @@ func newReturnObjectField(index int, sf reflect.StructField, opts resultOptions)
 		}
 	}
 
-	pof.Result = r
-	return pof, nil
+	return returnObjectField{
+		FieldName:  sf.Name,
+		FieldIndex: index,
+		Result:     r,
+	}, nil
 }

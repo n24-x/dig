@@ -19,7 +19,6 @@ func TestNewConstructorNodeGoodCases(t *testing.T) {
 	kTyp1Group := resourceType{valueType: reflect.TypeFor[*typ1](), groupName: "rain"}
 	kTyp1Slice := resourceType{valueType: reflect.TypeFor[[]*typ1]()}
 	kInt := resourceType{valueType: reflect.TypeFor[int]()}
-	kError := resourceType{valueType: reflect.TypeFor[error]()}
 
 	tests := []struct {
 		name         string
@@ -72,12 +71,6 @@ func TestNewConstructorNodeGoodCases(t *testing.T) {
 			name:         "ignoreUnexportedParamsGoodData5: unexported field is skipped",
 			input:        func(ignoreUnexportedParamsGoodData5) *typ3 { return nil },
 			wantRequires: []resourceType{kTyp1Slice},
-			wantProvides: []resourceType{kTyp3},
-		},
-		{
-			name:         "paramsGoodData6: error field is a dependency",
-			input:        func(paramsGoodData6) *typ3 { return nil },
-			wantRequires: []resourceType{kTyp1, kError},
 			wantProvides: []resourceType{kTyp3},
 		},
 		{
@@ -173,7 +166,7 @@ func TestNewConstructorNodeBadCases(t *testing.T) {
 		{
 			name:    "resultsBadData6: error is not a valid result field",
 			input:   func() resultsBadData6 { return resultsBadData6{} },
-			wantErr: "cannot return an error here",
+			wantErr: "cannot handle error here",
 		},
 		{
 			name:    "paramsBadData7: unexported field",
@@ -209,6 +202,21 @@ func TestNewConstructorNodeBadCases(t *testing.T) {
 			name:    "paramsBadData13: flatten is not allowed in parameter-struct",
 			input:   func(paramsBadData13) *typ3 { return nil },
 			wantErr: "cannot use group-tag with flatten in parameter-struct",
+		},
+		{
+			name:    "paramsBadData14: error is not a valid dependency",
+			input:   func(paramsBadData14) *typ3 { return nil },
+			wantErr: "cannot handle error here",
+		},
+		{
+			name:    "paramsBadData15: error nested in a parameter-struct field",
+			input:   func(paramsBadData15) *typ3 { return nil },
+			wantErr: `bad field "Inner" of dig.paramsBadData15: bad field "ErrorType" of dig.paramsBadData15Inner: cannot handle error here`,
+		},
+		{
+			name:    "resultsBadData16: error nested in a return-struct field",
+			input:   func() resultsBadData16 { return resultsBadData16{} },
+			wantErr: `bad field "Inner" of dig.resultsBadData16: bad field "ErrorType" of dig.resultsBadData16Inner: cannot handle error here`,
 		},
 		{
 			name:    "ResultGroup with passive is rejected",
