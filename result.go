@@ -28,7 +28,7 @@ type resultOptions struct {
 
 var (
 	_ result = valueResult{}
-	_ result = providedObject{}
+	_ result = returnObject{}
 	_ result = valueResultGroup{}
 )
 
@@ -47,7 +47,7 @@ func newResult(typ reflect.Type, opts resultOptions) (result, error) {
 		return nil, newErrInvalidInput("cannot return an error here, return it from the constructor instead", nil)
 
 	case IsProvided(typ):
-		return newProvidedObject(typ, opts)
+		return newReturnObject(typ, opts)
 
 	case embedsType(typ, _providedPtrType):
 		return nil, newErrInvalidInput(fmt.Sprintf(
