@@ -20,18 +20,18 @@ type resultList struct {
 }
 
 var (
-	_ interface{ Provides() []resourceID }    = resultList{}
+	_ interface{ Provides() []resourceType }  = resultList{}
 	_ interface{ DotResults() []*dot.Result } = resultList{}
 )
 
 var _ func(reflect.Type, resultOptions) (resultList, error) = newResultList
 
-// Provides returns the resourceIDs produced by the constructor.
+// Provides returns the resourceTypes produced by the constructor.
 //
 // By the time Provides is called, error returns have already been removed
 // from Results (see newResultList), so there is no need to skip anything here.
-func (rl resultList) Provides() []resourceID {
-	var keys []resourceID
+func (rl resultList) Provides() []resourceType {
+	var keys []resourceType
 	for _, r := range rl.Results {
 		keys = append(keys, r.Provides()...)
 	}

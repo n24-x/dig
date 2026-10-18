@@ -26,15 +26,15 @@ type valueResultGroup struct {
 
 var _ func(reflect.StructField) (valueResultGroup, error) = newValueResultGroup
 
-func (rg valueResultGroup) Provides() []resourceID {
-	keys := []resourceID{
+func (rg valueResultGroup) Provides() []resourceType {
+	keys := []resourceType{
 		{
 			valueType: rg.ValueType,
 			groupName: rg.GroupName,
 		},
 	}
 	for _, typ := range rg.As {
-		keys = append(keys, resourceID{
+		keys = append(keys, resourceType{
 			valueType: typ,
 			groupName: rg.GroupName,
 		})

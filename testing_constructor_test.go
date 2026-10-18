@@ -12,106 +12,106 @@ import (
 func TestNewConstructorNodeGoodCases(t *testing.T) {
 	t.Parallel()
 
-	kTyp1 := resourceID{valueType: reflect.TypeFor[*typ1]()}
-	kTyp2 := resourceID{valueType: reflect.TypeFor[*typ2]()}
-	kTyp3 := resourceID{valueType: reflect.TypeFor[*typ3]()}
-	kTyp2Named := resourceID{valueType: reflect.TypeFor[*typ2](), valueName: "lee"}
-	kTyp1Group := resourceID{valueType: reflect.TypeFor[*typ1](), groupName: "rain"}
-	kTyp1Slice := resourceID{valueType: reflect.TypeFor[[]*typ1]()}
-	kInt := resourceID{valueType: reflect.TypeFor[int]()}
-	kError := resourceID{valueType: reflect.TypeFor[error]()}
+	kTyp1 := resourceType{valueType: reflect.TypeFor[*typ1]()}
+	kTyp2 := resourceType{valueType: reflect.TypeFor[*typ2]()}
+	kTyp3 := resourceType{valueType: reflect.TypeFor[*typ3]()}
+	kTyp2Named := resourceType{valueType: reflect.TypeFor[*typ2](), valueName: "lee"}
+	kTyp1Group := resourceType{valueType: reflect.TypeFor[*typ1](), groupName: "rain"}
+	kTyp1Slice := resourceType{valueType: reflect.TypeFor[[]*typ1]()}
+	kInt := resourceType{valueType: reflect.TypeFor[int]()}
+	kError := resourceType{valueType: reflect.TypeFor[error]()}
 
 	tests := []struct {
 		name         string
 		input        any
 		opts         constructorOptions
-		wantRequires []resourceID
-		wantProvides []resourceID
+		wantRequires []resourceType
+		wantProvides []resourceType
 	}{
 		{
 			name:         "single result",
 			input:        func() *typ3 { return nil },
-			wantProvides: []resourceID{kTyp3},
+			wantProvides: []resourceType{kTyp3},
 		},
 		{
 			name:         "two params",
 			input:        func(*typ1, *typ2) *typ3 { return nil },
-			wantRequires: []resourceID{kTyp1, kTyp2},
-			wantProvides: []resourceID{kTyp3},
+			wantRequires: []resourceType{kTyp1, kTyp2},
+			wantProvides: []resourceType{kTyp3},
 		},
 		{
 			name:         "error result is not a resource",
 			input:        func() (*typ1, error) { return nil, nil },
-			wantProvides: []resourceID{kTyp1},
+			wantProvides: []resourceType{kTyp1},
 		},
 		{
 			name:         "requiredParamsGoodData1: parameter-struct is flattened",
 			input:        func(requiredParamsGoodData1) *typ3 { return nil },
-			wantRequires: []resourceID{kTyp1, kTyp2Named},
-			wantProvides: []resourceID{kTyp3},
+			wantRequires: []resourceType{kTyp1, kTyp2Named},
+			wantProvides: []resourceType{kTyp3},
 		},
 		{
 			name:         "optionalParamsGoodData2: optional param is dropped from requires",
 			input:        func(optionalParamsGoodData2) *typ3 { return nil },
-			wantRequires: []resourceID{kTyp2},
-			wantProvides: []resourceID{kTyp3},
+			wantRequires: []resourceType{kTyp2},
+			wantProvides: []resourceType{kTyp3},
 		},
 		{
 			name:         "groupParamsGoodData3: param group uses the element type",
 			input:        func(groupParamsGoodData3) *typ3 { return nil },
-			wantRequires: []resourceID{kTyp1Group},
-			wantProvides: []resourceID{kTyp3},
+			wantRequires: []resourceType{kTyp1Group},
+			wantProvides: []resourceType{kTyp3},
 		},
 		{
 			name:         "passiveGroupParamsGoodData4: passive group is dropped from requires",
 			input:        func(passiveGroupParamsGoodData4) *typ3 { return nil },
-			wantRequires: []resourceID{kInt},
-			wantProvides: []resourceID{kTyp3},
+			wantRequires: []resourceType{kInt},
+			wantProvides: []resourceType{kTyp3},
 		},
 		{
 			name:         "ignoreUnexportedParamsGoodData5: unexported field is skipped",
 			input:        func(ignoreUnexportedParamsGoodData5) *typ3 { return nil },
-			wantRequires: []resourceID{kTyp1Slice},
-			wantProvides: []resourceID{kTyp3},
+			wantRequires: []resourceType{kTyp1Slice},
+			wantProvides: []resourceType{kTyp3},
 		},
 		{
 			name:         "paramsGoodData6: error field is a dependency",
 			input:        func(paramsGoodData6) *typ3 { return nil },
-			wantRequires: []resourceID{kTyp1, kError},
-			wantProvides: []resourceID{kTyp3},
+			wantRequires: []resourceType{kTyp1, kError},
+			wantProvides: []resourceType{kTyp3},
 		},
 		{
 			name:         "providedResultsGoodData7: return-struct is flattened",
 			input:        func() providedResultsGoodData7 { return providedResultsGoodData7{} },
-			wantProvides: []resourceID{kTyp1, kTyp2Named},
+			wantProvides: []resourceType{kTyp1, kTyp2Named},
 		},
 		{
 			name:         "groupResultsGoodData8: result group keeps the value type",
 			input:        func() groupResultsGoodData8 { return groupResultsGoodData8{} },
-			wantProvides: []resourceID{kTyp1Group},
+			wantProvides: []resourceType{kTyp1Group},
 		},
 		{
 			name:         "flattenResultsGoodData9: result group with flatten uses the element type",
 			input:        func() flattenResultsGoodData9 { return flattenResultsGoodData9{} },
-			wantProvides: []resourceID{kTyp1Group},
+			wantProvides: []resourceType{kTyp1Group},
 		},
 		{
 			name:         "As replaces the provided type",
 			input:        func() *bytes.Buffer { return nil },
 			opts:         constructorOptions{ResultAs: []any{new(io.Reader)}},
-			wantProvides: []resourceID{{valueType: reflect.TypeFor[io.Reader]()}},
+			wantProvides: []resourceType{{valueType: reflect.TypeFor[io.Reader]()}},
 		},
 		{
 			name:         "ResultName names the provided value",
 			input:        func() *typ1 { return nil },
 			opts:         constructorOptions{ResultName: "foo"},
-			wantProvides: []resourceID{{valueType: reflect.TypeFor[*typ1](), valueName: "foo"}},
+			wantProvides: []resourceType{{valueType: reflect.TypeFor[*typ1](), valueName: "foo"}},
 		},
 		{
 			name:         "ResultGroup puts the provided value in a group",
 			input:        func() *typ1 { return nil },
 			opts:         constructorOptions{ResultGroup: "rain"},
-			wantProvides: []resourceID{kTyp1Group},
+			wantProvides: []resourceType{kTyp1Group},
 		},
 	}
 
