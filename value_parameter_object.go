@@ -44,8 +44,8 @@ func (ro parameterObject) String() string {
 	return strings.Join(fields, " ")
 }
 
-func (ro parameterObject) Requires() []resourceKey {
-	var keys []resourceKey
+func (ro parameterObject) Requires() []resourceID {
+	var keys []resourceID
 	for _, f := range ro.Fields {
 		keys = append(keys, f.Param.Requires()...)
 	}

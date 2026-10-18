@@ -40,11 +40,11 @@ func (ps valueParam) String() string {
 // Optional params are not reported: graph edges are "must build" edges, so
 // an optional dependency that nobody provides must not fail resolution.
 // Build is responsible for falling back to a zero value.
-func (ps valueParam) Requires() []resourceKey {
+func (ps valueParam) Requires() []resourceID {
 	if ps.Optional {
 		return nil
 	}
-	return []resourceKey{
+	return []resourceID{
 		{
 			valueType: ps.ValueType,
 			valueName: ps.ValueName,

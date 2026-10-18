@@ -26,7 +26,7 @@ type constructorNode struct {
 }
 
 var (
-	_ dag.Node[resourceKey]                    = (*constructorNode)(nil)
+	_ dag.Node[resourceID]                     = (*constructorNode)(nil)
 	_ fmt.Stringer                             = (*constructorNode)(nil)
 	_ interface{ Location() *digreflect.Func } = (*constructorNode)(nil)
 	_ interface{ ParamList() paramList }       = (*constructorNode)(nil)
@@ -89,11 +89,11 @@ func newConstructorNode(ctor any, opts constructorOptions) (*constructorNode, er
 	return cn, nil
 }
 
-func (cn *constructorNode) Requires() []resourceKey {
+func (cn *constructorNode) Requires() []resourceID {
 	return cn.paramList.Requires()
 }
 
-func (cn *constructorNode) Provides() []resourceKey {
+func (cn *constructorNode) Provides() []resourceID {
 	return cn.resultList.Provides()
 }
 

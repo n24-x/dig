@@ -18,15 +18,15 @@ type valueResult struct {
 
 var _ func(reflect.Type, resultOptions) (valueResult, error) = newValueResult
 
-func (r valueResult) Provides() []resourceKey {
-	keys := []resourceKey{
+func (r valueResult) Provides() []resourceID {
+	keys := []resourceID{
 		{
 			valueType: r.ValueType,
 			valueName: r.ValueName,
 		},
 	}
 	for _, typ := range r.As {
-		keys = append(keys, resourceKey{
+		keys = append(keys, resourceID{
 			valueType: typ,
 			valueName: r.ValueName,
 		})
