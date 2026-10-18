@@ -7,14 +7,14 @@ import (
 	"github.com/n24-x/dig/internal/dot"
 )
 
-type providedObject struct {
+type returnObject struct {
 	Type   reflect.Type
-	Fields []providedObjectField
+	Fields []returnObjectField
 }
 
-var _ func(reflect.Type, resultOptions) (providedObject, error) = newProvidedObject
+var _ func(reflect.Type, resultOptions) (returnObject, error) = newReturnObject
 
-type providedObjectField struct {
+type returnObjectField struct {
 	// Name of the field in the struct.
 	FieldName string
 
@@ -28,9 +28,9 @@ type providedObjectField struct {
 	Result result
 }
 
-var _ func(int, reflect.StructField, resultOptions) (providedObjectField, error) = newProvidedObjectField
+var _ func(int, reflect.StructField, resultOptions) (returnObjectField, error) = newReturnObjectField
 
-func (po providedObject) Provides() []resourceKey {
+func (po returnObject) Provides() []resourceKey {
 	if len(po.Fields) == 0 {
 		return []resourceKey{}
 	}
@@ -43,7 +43,7 @@ func (po providedObject) Provides() []resourceKey {
 	return keys
 }
 
-func (po providedObject) DotResults() []*dot.Result {
+func (po returnObject) DotResults() []*dot.Result {
 	var dotResults []*dot.Result
 	for _, f := range po.Fields {
 		dotResults = append(dotResults, f.Result.DotResults()...)
@@ -51,21 +51,21 @@ func (po providedObject) DotResults() []*dot.Result {
 	return dotResults
 }
 
-func newProvidedObject(typ reflect.Type, opts resultOptions) (providedObject, error) {
-	po := providedObject{
+func newReturnObject(typ reflect.Type, opts resultOptions) (returnObject, error) {
+	po := returnObject{
 		Type: typ,
 	}
 
 	if opts.Name != "" {
-		return providedObject{}, newErrInvalidInput(fmt.Sprintf(
+		return returnObject{}, newErrInvalidInput(fmt.Sprintf(
 			"cannot use dig.Name with return-struct: %v embeds dig.Provided", typ), nil)
 	}
 	if opts.Group != "" {
-		return providedObject{}, newErrInvalidInput(fmt.Sprintf(
+		return returnObject{}, newErrInvalidInput(fmt.Sprintf(
 			"cannot use dig.Group with return-struct: %v embeds dig.Provided", typ), nil)
 	}
 	if len(opts.As) > 0 {
-		return providedObject{}, newErrInvalidInput(fmt.Sprintf(
+		return returnObject{}, newErrInvalidInput(fmt.Sprintf(
 			"cannot use dig.As with return-struct: %v embeds dig.Provided", typ), nil)
 	}
 
@@ -75,9 +75,9 @@ func newProvidedObject(typ reflect.Type, opts resultOptions) (providedObject, er
 			continue // skip dig.Provided
 		}
 
-		pof, err := newProvidedObjectField(i, f, opts)
+		pof, err := newReturnObjectField(i, f, opts)
 		if err != nil {
-			return providedObject{}, newErrInvalidInput(
+			return returnObject{}, newErrInvalidInput(
 				fmt.Sprintf("bad field %q of %v", f.Name, typ), err)
 		}
 
@@ -86,11 +86,11 @@ func newProvidedObject(typ reflect.Type, opts resultOptions) (providedObject, er
 	return po, nil
 }
 
-func newProvidedObjectField(index int, sf reflect.StructField, opts resultOptions) (
-	providedObjectField,
+func newReturnObjectField(index int, sf reflect.StructField, opts resultOptions) (
+	returnObjectField,
 	error,
 ) {
-	pof := providedObjectField{
+	pof := returnObjectField{
 		FieldName:  sf.Name,
 		FieldIndex: index,
 	}
@@ -98,12 +98,12 @@ func newProvidedObjectField(index int, sf reflect.StructField, opts resultOption
 	var r result
 	switch {
 	case sf.PkgPath != "":
-		return providedObjectField{}, newErrInvalidInput(
+		return returnObjectField{}, newErrInvalidInput(
 			fmt.Sprintf("unexported fields not allowed in return-struct, did you mean to export %q (%v)?",
 				sf.Name, sf.Type), nil)
 
 	case sf.Tag.Get(_optionalTag) != "":
-		return providedObjectField{}, newErrInvalidInput(
+		return returnObjectField{}, newErrInvalidInput(
 			fmt.Sprintf("cannot use optional-tag in return-struct: "+
 				"field %q (%v) has optional-tag",
 				sf.Name,
@@ -114,7 +114,7 @@ func newProvidedObjectField(index int, sf reflect.StructField, opts resultOption
 		var err error
 		r, err = newValueResultGroup(sf)
 		if err != nil {
-			return providedObjectField{}, err
+			return returnObjectField{}, err
 		}
 
 	default:
@@ -125,7 +125,7 @@ func newProvidedObjectField(index int, sf reflect.StructField, opts resultOption
 		}
 		r, err = newResult(sf.Type, opts)
 		if err != nil {
-			return providedObjectField{}, err
+			return returnObjectField{}, err
 		}
 	}
 

@@ -20,14 +20,14 @@ type param interface {
 
 var (
 	_ param = valueParam{}
-	_ param = requiredObject{}
+	_ param = parameterObject{}
 	_ param = valueParamGroup{}
 )
 
 var _ func(reflect.Type) (param, error) = newParam
 
 // newParam builds a param from the given typ. If the typ is a parameter
-// struct, a requiredObject will be returned.
+// struct, a parameterObject will be returned.
 func newParam(typ reflect.Type) (param, error) {
 	switch {
 	case IsProvided(typ) ||
@@ -51,7 +51,7 @@ func newParam(typ reflect.Type) (param, error) {
 				" %v is a pointer to a struct that embeds dig.Required", typ), nil)
 
 	case IsRequired(typ):
-		return newRequiredObject(typ)
+		return newParameterObject(typ)
 
 	default:
 		return newValueParam(typ), nil

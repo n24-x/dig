@@ -8,19 +8,19 @@ import (
 	"github.com/n24-x/dig/internal/dot"
 )
 
-// requiredObject is a parameter struct where each field is another param.
+// parameterObject is a parameter struct where each field is another param.
 //
 // This object is not expected in the graph as-is.
-type requiredObject struct {
+type parameterObject struct {
 	Type        reflect.Type
-	Fields      []requiredObjectField
+	Fields      []parameterObjectField
 	FieldOrders []int
 }
 
-var _ func(reflect.Type) (requiredObject, error) = newRequiredObject
+var _ func(reflect.Type) (parameterObject, error) = newParameterObject
 
-// requiredObjectField is a single field of a parameter struct.
-type requiredObjectField struct {
+// parameterObjectField is a single field of a parameter struct.
+type parameterObjectField struct {
 	// Name of the field in the struct.
 	FieldName string
 
@@ -34,9 +34,9 @@ type requiredObjectField struct {
 	Param param
 }
 
-var _ func(int, reflect.StructField) (requiredObjectField, error) = newRequiredObjectField
+var _ func(int, reflect.StructField) (parameterObjectField, error) = newParameterObjectField
 
-func (ro requiredObject) String() string {
+func (ro parameterObject) String() string {
 	fields := make([]string, len(ro.Fields))
 	for i, f := range ro.Fields {
 		fields[i] = f.Param.String()
@@ -44,7 +44,7 @@ func (ro requiredObject) String() string {
 	return strings.Join(fields, " ")
 }
 
-func (ro requiredObject) Requires() []resourceKey {
+func (ro parameterObject) Requires() []resourceKey {
 	var keys []resourceKey
 	for _, f := range ro.Fields {
 		keys = append(keys, f.Param.Requires()...)
@@ -52,7 +52,7 @@ func (ro requiredObject) Requires() []resourceKey {
 	return keys
 }
 
-func (ro requiredObject) DotParams() []*dot.Param {
+func (ro parameterObject) DotParams() []*dot.Param {
 	var params []*dot.Param
 	for _, f := range ro.Fields {
 		params = append(params, f.Param.DotParams()...)
@@ -60,10 +60,10 @@ func (ro requiredObject) DotParams() []*dot.Param {
 	return params
 }
 
-// newRequiredObject builds a requiredObject from the provided type.
+// newParameterObject builds a parameterObject from the provided type.
 // The type MUST be a parameter struct.
-func newRequiredObject(typ reflect.Type) (requiredObject, error) {
-	ro := requiredObject{Type: typ}
+func newParameterObject(typ reflect.Type) (parameterObject, error) {
+	ro := parameterObject{Type: typ}
 
 	var ignoreUnexported bool
 	for f := range typ.Fields() {
@@ -71,7 +71,7 @@ func newRequiredObject(typ reflect.Type) (requiredObject, error) {
 			var err error
 			ignoreUnexported, err = isIgnoreUnexportedSet(f)
 			if err != nil {
-				return requiredObject{}, err
+				return parameterObject{}, err
 			}
 			break
 		}
@@ -87,9 +87,9 @@ func newRequiredObject(typ reflect.Type) (requiredObject, error) {
 			// Skip over an unexported field if it is allowed.
 			continue
 		}
-		rof, err := newRequiredObjectField(i, f)
+		rof, err := newParameterObjectField(i, f)
 		if err != nil {
-			return requiredObject{}, newErrInvalidInput(
+			return parameterObject{}, newErrInvalidInput(
 				fmt.Sprintf("bad field %q of %v", f.Name, typ), err)
 		}
 		ro.Fields = append(ro.Fields, rof)
@@ -97,8 +97,8 @@ func newRequiredObject(typ reflect.Type) (requiredObject, error) {
 	return ro, nil
 }
 
-func newRequiredObjectField(idx int, f reflect.StructField) (requiredObjectField, error) {
-	pof := requiredObjectField{
+func newParameterObjectField(idx int, f reflect.StructField) (parameterObjectField, error) {
+	pof := parameterObjectField{
 		FieldName:  f.Name,
 		FieldIndex: idx,
 	}
@@ -131,7 +131,7 @@ func newRequiredObjectField(idx int, f reflect.StructField) (requiredObjectField
 		var err error
 		ps.Optional, err = isFieldOptional(f)
 		if err != nil {
-			return requiredObjectField{}, err
+			return parameterObjectField{}, err
 		}
 
 		p = ps
