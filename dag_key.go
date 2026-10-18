@@ -5,7 +5,7 @@ import (
 	"reflect"
 )
 
-// resourceKey uniquely identifies a node in the dag graph.
+// resourceKey uniquely identifies a node in the dag.
 type resourceKey struct {
 	valueType reflect.Type
 
