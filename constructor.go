@@ -36,17 +36,6 @@ var (
 
 var _ func(any, constructorOptions) (*constructorNode, error) = newConstructorNode
 
-type constructorOptions struct {
-	ResultName  string
-	ResultGroup string
-	ResultAs    []any
-	Location    *digreflect.Func
-
-	// TODO
-	// Callback
-	// BeforeCallback
-}
-
 // newConstructorNode parses ctor into a dag node.
 //
 // ctor MUST have been validated by the caller.
@@ -60,14 +49,7 @@ func newConstructorNode(ctor any, opts constructorOptions) (*constructorNode, er
 		return nil, err
 	}
 
-	results, err := newResultList(
-		ctype,
-		resultOptions{
-			Name:  opts.ResultName,
-			Group: opts.ResultGroup,
-			As:    opts.ResultAs,
-		},
-	)
+	results, err := newResultList(ctype, opts.Result)
 	if err != nil {
 		return nil, err
 	}

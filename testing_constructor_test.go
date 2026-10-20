@@ -91,19 +91,19 @@ func TestNewConstructorNodeGoodCases(t *testing.T) {
 		{
 			name:         "As replaces the provided type",
 			input:        func() *bytes.Buffer { return nil },
-			opts:         constructorOptions{ResultAs: []any{new(io.Reader)}},
+			opts:         constructorOptions{Result: resultOptions{As: []any{new(io.Reader)}}},
 			wantProvides: []resourceType{{valueType: reflect.TypeFor[io.Reader]()}},
 		},
 		{
-			name:         "ResultName names the provided value",
+			name:         "ValueName names the provided value",
 			input:        func() *typ1 { return nil },
-			opts:         constructorOptions{ResultName: "foo"},
+			opts:         constructorOptions{Result: resultOptions{ValueName: "foo"}},
 			wantProvides: []resourceType{{valueType: reflect.TypeFor[*typ1](), valueName: "foo"}},
 		},
 		{
-			name:         "ResultGroup puts the provided value in a group",
+			name:         "GroupName puts the provided value in a group",
 			input:        func() *typ1 { return nil },
-			opts:         constructorOptions{ResultGroup: "rain"},
+			opts:         constructorOptions{Result: resultOptions{GroupName: "rain"}},
 			wantProvides: []resourceType{kTyp1Group},
 		},
 	}
@@ -219,15 +219,15 @@ func TestNewConstructorNodeBadCases(t *testing.T) {
 			wantErr: `bad field "Inner" of dig.resultsBadData16: bad field "ErrorType" of dig.resultsBadData16Inner: cannot handle error here`,
 		},
 		{
-			name:    "ResultGroup with passive is rejected",
+			name:    "GroupName with passive is rejected",
 			input:   func() *typ1 { return nil },
-			opts:    constructorOptions{ResultGroup: "rain,passive"},
+			opts:    constructorOptions{Result: resultOptions{GroupName: "rain,passive"}},
 			wantErr: "passive was incorrectly used",
 		},
 		{
 			name:    "As target is not implemented",
 			input:   func() *bytes.Buffer { return nil },
-			opts:    constructorOptions{ResultAs: []any{new(io.Closer)}},
+			opts:    constructorOptions{Result: resultOptions{As: []any{new(io.Closer)}}},
 			wantErr: "does not implement",
 		},
 	}

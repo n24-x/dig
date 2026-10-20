@@ -17,15 +17,6 @@ type result interface {
 	DotResults() []*dot.Result
 }
 
-type resultOptions struct {
-	// If set, this is the name of the associated result value.
-	//
-	// For Result Objects, name:".." tags on fields override this.
-	Name  string
-	Group string
-	As    []any
-}
-
 var (
 	_ result = valueResult{}
 	_ result = returnObject{}
@@ -59,11 +50,11 @@ func newResult(typ reflect.Type, opts resultOptions) (result, error) {
 			"cannot use pointer as return-struct, use a value instead:"+
 				" %v is a pointer to a struct that embeds dig.Provided", typ), nil)
 
-	case opts.Group != "":
-		g, err := parseGroupString(opts.Group)
+	case opts.GroupName != "":
+		g, err := parseGroupString(opts.GroupName)
 		if err != nil {
 			return nil, newErrInvalidInput(
-				fmt.Sprintf("cannot parse group-tag value %q", opts.Group), err)
+				fmt.Sprintf("cannot parse group-tag value %q", opts.GroupName), err)
 		}
 		rg := valueResultGroup{ValueType: typ, GroupName: g.Name, Flatten: g.Flatten}
 		if len(opts.As) > 0 {
