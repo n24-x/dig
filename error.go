@@ -15,7 +15,10 @@ type digError interface {
 var (
 	_ digError = errInvalidInput{}
 	_ digError = errInvalidGroupOption{}
+	_ digError = errConstructor{}
 )
+
+var _ func(string, error) errInvalidInput = newErrInvalidInput
 
 type Error interface {
 	error
@@ -40,8 +43,6 @@ func newErrInvalidInput(msg string, cause error) errInvalidInput {
 	return errInvalidInput{msg, cause}
 }
 
-var _ func(string, error) errInvalidInput = newErrInvalidInput
-
 func (e errInvalidInput) Error() string { return fmt.Sprint(e) }
 func (e errInvalidInput) Unwrap() error { return e.Cause }
 
@@ -62,5 +63,22 @@ func (e errInvalidGroupOption) writeMessage(w io.Writer, _ string) {
 }
 
 func (e errInvalidGroupOption) Format(w fmt.State, c rune) {
+	formatError(e, w, c)
+}
+
+type errConstructor struct {
+	Func   *digreflect.Func
+	Reason error
+}
+
+func (e errConstructor) Error() string { return fmt.Sprint(e) }
+
+func (e errConstructor) Unwrap() error { return e.Reason }
+
+func (e errConstructor) writeMessage(w io.Writer, verb string) {
+	_, _ = fmt.Fprintf(w, "cannot provide function "+verb, e.Func)
+}
+
+func (e errConstructor) Format(w fmt.State, c rune) {
 	formatError(e, w, c)
 }

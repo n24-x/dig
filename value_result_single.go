@@ -59,7 +59,7 @@ func (r valueResult) DotResults() []*dot.Result {
 func newValueResult(typ reflect.Type, opts resultOptions) (valueResult, error) {
 	r := valueResult{
 		ValueType: typ,
-		ValueName: opts.Name,
+		ValueName: opts.ValueName,
 	}
 
 	var asTypes []reflect.Type
@@ -85,7 +85,7 @@ func newValueResult(typ reflect.Type, opts resultOptions) (valueResult, error) {
 
 	return valueResult{
 		ValueType: asTypes[0],
-		ValueName: opts.Name,
+		ValueName: opts.ValueName,
 		As:        asTypes[1:],
 	}, nil
 }
