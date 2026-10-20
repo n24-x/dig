@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"reflect"
 
-	_ "github.com/n24-x/dag-go" // lets gopls resolve the [dag.Add] doc link below
+	_ "github.com/n24-x/dag-go"
 )
 
 // DagID uniquely identifies a constructor within a DAG.
