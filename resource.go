@@ -54,8 +54,10 @@ func (sp *Scope) resource(ctor any, options resourceOptions) (err error) {
 	return nil
 }
 
-// Name sets the name of the provided value. Validation is performed once by
-// [Validate] rather than here.
+// Name sets the name of the provided value.
+//
+// TODO cleanup
+// Validation is performed once by [Validate] rather than here.
 func Name(name string) Option[*resourceOptions] {
 	return func(ro *resourceOptions) {
 		if ro == nil {
@@ -65,14 +67,16 @@ func Name(name string) Option[*resourceOptions] {
 	}
 }
 
-// Group places the provided value in the given group. Validation is performed
-// once by [Validate] rather than here.
-func Group(group string) Option[*resourceOptions] {
+// Group places the provided value in the given group.
+//
+// TODO cleanup
+// Validation is performed once by [Validate] rather than here.
+func Group(groupName string) Option[*resourceOptions] {
 	return func(ro *resourceOptions) {
 		if ro == nil {
 			return
 		}
-		ro.GroupName = group
+		ro.GroupName = groupName
 	}
 }
 
@@ -84,5 +88,18 @@ func LocationForPC(pc uintptr) Option[*resourceOptions] {
 			return
 		}
 		ro.Location = digreflect.InspectFuncPC(pc)
+	}
+}
+
+// As makes the produced value available under the given interfaces as well as
+// its own type. Each argument must be a pointer to an interface that the value
+// implements; because the argument is untyped, this cannot be checked by the
+// compiler and is validated by [Validate] and at parse time instead.
+func As(types ...any) Option[*resourceOptions] {
+	return func(ro *resourceOptions) {
+		if ro == nil {
+			return
+		}
+		ro.As = append(ro.As, types...)
 	}
 }

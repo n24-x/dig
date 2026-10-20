@@ -64,7 +64,7 @@ func newValueResult(typ reflect.Type, opts resultOptions) (valueResult, error) {
 
 	var asTypes []reflect.Type
 	for _, as := range opts.As {
-		ifaceType := reflect.TypeOf(as).Elem()
+		ifaceType := reflect.TypeOf(as).Elem() // as is validated
 		if ifaceType == typ {
 			// Special case:
 			//   c.Resource(func() io.Reader, As(new(io.Reader)))
@@ -73,7 +73,7 @@ func newValueResult(typ reflect.Type, opts resultOptions) (valueResult, error) {
 		}
 		if !typ.Implements(ifaceType) {
 			return r, newErrInvalidInput(
-				fmt.Sprintf("invalid dig.As: %v does not implement %v",
+				fmt.Sprintf("invalid dig.As(%v): does not implement %v",
 					typ, ifaceType), nil)
 		}
 		asTypes = append(asTypes, ifaceType)
