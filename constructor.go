@@ -16,7 +16,9 @@ type constructorNode struct {
 
 	location *digreflect.Func
 
-	constructorID dot.ConstructorID
+	// dotID is the constructor's function pointer, used as its key in DOT
+	// bookkeeping. It is not the DAG node number; that comes from dag.Add.
+	dotID dot.ConstructorID
 
 	paramList  paramList
 	resultList resultList
@@ -30,7 +32,7 @@ var (
 	_ interface{ Location() *digreflect.Func } = (*constructorNode)(nil)
 	_ interface{ ParamList() paramList }       = (*constructorNode)(nil)
 	_ interface{ ResultList() resultList }     = (*constructorNode)(nil)
-	_ interface{ ID() dot.ConstructorID }      = (*constructorNode)(nil)
+	_ interface{ DotID() dot.ConstructorID }   = (*constructorNode)(nil)
 	_ interface{ CType() reflect.Type }        = (*constructorNode)(nil)
 )
 
@@ -60,12 +62,12 @@ func newConstructorNode(ctor any, opts constructorOptions) (*constructorNode, er
 	}
 
 	cn := &constructorNode{
-		constructor:   ctor,
-		ctype:         ctype,
-		location:      location,
-		constructorID: dot.ConstructorID(cptr),
-		paramList:     params,
-		resultList:    results,
+		constructor: ctor,
+		ctype:       ctype,
+		location:    location,
+		dotID:       dot.ConstructorID(cptr),
+		paramList:   params,
+		resultList:  results,
 	}
 	return cn, nil
 }
@@ -85,5 +87,5 @@ func (cn *constructorNode) Provides() []resourceType {
 func (cn *constructorNode) Location() *digreflect.Func { return cn.location }
 func (cn *constructorNode) ParamList() paramList       { return cn.paramList }
 func (cn *constructorNode) ResultList() resultList     { return cn.resultList }
-func (cn *constructorNode) ID() dot.ConstructorID      { return cn.constructorID }
+func (cn *constructorNode) DotID() dot.ConstructorID   { return cn.dotID }
 func (cn *constructorNode) CType() reflect.Type        { return cn.ctype }
