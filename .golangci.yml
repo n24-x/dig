@@ -93,7 +93,10 @@ linters:
           # Whether to be strict about shadowing; can be noisy.
           # Default: false
           strict: true
-
+    revive:
+        rules:
+          - name: blank-imports
+            disabled: true
     errcheck: # in dev, disable std-error-handling to check
       exclude-functions:
         # These methods can not fail.
