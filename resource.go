@@ -50,7 +50,39 @@ func (sp *Scope) Resource(ctor any, opts ...Option[*resourceOptions]) error {
 	return nil
 }
 
-//nolint:unused // TODO
 func (sp *Scope) resource(ctor any, options resourceOptions) (err error) {
 	return nil
+}
+
+// Name sets the name of the provided value. Validation is performed once by
+// [Validate] rather than here.
+func Name(name string) Option[*resourceOptions] {
+	return func(ro *resourceOptions) {
+		if ro == nil {
+			return
+		}
+		ro.ValueName = name
+	}
+}
+
+// Group places the provided value in the given group. Validation is performed
+// once by [Validate] rather than here.
+func Group(group string) Option[*resourceOptions] {
+	return func(ro *resourceOptions) {
+		if ro == nil {
+			return
+		}
+		ro.GroupName = group
+	}
+}
+
+// LocationForPC records the call site that constructed this option. It is used
+// to attribute errors to user code instead of to this package.
+func LocationForPC(pc uintptr) Option[*resourceOptions] {
+	return func(ro *resourceOptions) {
+		if ro == nil {
+			return
+		}
+		ro.Location = digreflect.InspectFuncPC(pc)
+	}
 }
