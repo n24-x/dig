@@ -2,6 +2,7 @@ package dig
 
 import (
 	"fmt"
+	"reflect"
 	"strings"
 
 	"github.com/n24-x/dig/internal/digreflect"
@@ -41,7 +42,7 @@ type resourceOptions struct {
 	// Info *ResourceInfo
 }
 
-// TODO: Validate reports whether the option combination is usable. Options are
+// Validate reports whether the option combination is usable. Options are
 // validated as a set, because some constraints span multiple fields (Name and
 // Group are mutually exclusive).
 func (ro *resourceOptions) Validate() error {
@@ -64,8 +65,36 @@ func (ro *resourceOptions) Validate() error {
 			fmt.Sprintf("invalid dig.Group(%q): group names cannot contain backquotes", ro.GroupName), nil)
 	}
 
-	// TODO
-	// As Validate
+	duplicateAsType := make(map[reflect.Type]struct{})
+	for _, v := range ro.As {
+		asType := reflect.TypeOf(v)
+
+		if asType == nil {
+			return newErrInvalidInput("invalid dig.As(nil): argument must be a pointer to an interface", nil)
+		}
+
+		if asType.Kind() != reflect.Pointer {
+			return newErrInvalidInput(
+				fmt.Sprintf("invalid dig.As(%v): argument must be a pointer to an interface", asType), nil)
+		}
+
+		pointingTo := asType.Elem()
+		if pointingTo.Kind() != reflect.Interface {
+			return newErrInvalidInput(
+				fmt.Sprintf("invalid dig.As(*%v): argument must be a pointer to an interface", pointingTo), nil)
+		}
+
+		if isError(pointingTo) {
+			return newErrInvalidInput("invalid dig.As(new(error)): cannot use error in As()", nil)
+		}
+
+		_, ok := duplicateAsType[asType]
+		if ok {
+			return newErrInvalidInput(
+				fmt.Sprintf("duplicate type in As: %v", asType), nil)
+		}
+		duplicateAsType[asType] = struct{}{}
+	}
 
 	return nil
 }
