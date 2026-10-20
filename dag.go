@@ -3,7 +3,15 @@ package dig
 import (
 	"fmt"
 	"reflect"
+
+	_ "github.com/n24-x/dag-go" // lets gopls resolve the [dag.Add] doc link below
 )
+
+// DagID uniquely identifies a constructor within a DAG.
+//
+// It is assigned by [dag.Add] and is 1-based; 0 is reserved as the "not found"
+// sentinel.
+type DagID int
 
 // resourceType describes a required or supplied resource of a node in DAG.
 type resourceType struct {
