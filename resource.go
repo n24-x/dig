@@ -7,6 +7,63 @@ import (
 	"github.com/n24-x/dig/internal/digreflect"
 )
 
+type ConstructorInfo struct {
+	DagID   DagID
+	Params  []*ParamInfo
+	Results []*ResultInfo
+}
+
+type ParamInfo struct {
+	valueType reflect.Type
+
+	valueName string
+	optional  bool
+
+	groupName string
+}
+
+type ResultInfo struct {
+	valueType reflect.Type
+
+	valueName string
+
+	groupName string
+}
+
+// String returns a string representation of ParamInfo from a validated constructor.
+//
+// For example `*sql.DB[name="ro"]` or `[]*sql.DB[group="replicas"]`.
+func (p *ParamInfo) String() string {
+	typ := p.valueType.String()
+
+	switch {
+	case p.groupName != "":
+		return fmt.Sprintf("%s[group=%q]", typ, p.groupName)
+	case p.optional && p.valueName != "":
+		return fmt.Sprintf("%s[optional, name=%q]", typ, p.valueName)
+	case p.optional:
+		return fmt.Sprintf("%s[optional]", typ)
+	case p.valueName != "":
+		return fmt.Sprintf("%s[name=%q]", typ, p.valueName)
+	default:
+		return typ
+	}
+}
+
+// String returns a string representation of ResultInfo from a validated constructor.
+//
+// For example `*sql.DB[name="ro"]`.
+func (r *ResultInfo) String() string {
+	switch {
+	case r.groupName != "":
+		return fmt.Sprintf("%s[group=%q]", r.valueType, r.groupName)
+	case r.valueName != "":
+		return fmt.Sprintf("%s[name=%q]", r.valueType, r.valueName)
+	default:
+		return r.valueType.String()
+	}
+}
+
 func (ct *Container) Resource(ctor any, opts ...Option[*resourceOptions]) error {
 	if ct.rootScope == nil {
 		return fmt.Errorf("dig: container has a nil root scope")
