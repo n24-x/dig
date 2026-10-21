@@ -65,9 +65,6 @@ func (r *ResultInfo) String() string {
 }
 
 func (ct *Container) Resource(ctor any, opts ...Option[*resourceOptions]) error {
-	if ct.rootScope == nil {
-		return fmt.Errorf("dig: container has a nil root scope")
-	}
 	return ct.rootScope.Resource(ctor, opts...)
 }
 
