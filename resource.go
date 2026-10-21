@@ -99,7 +99,7 @@ func (sp *Scope) Resource(ctor any, opts ...Option[*resourceOptions]) error {
 			badFunc = options.Location
 		}
 
-		return errConstructor{
+		return errResourceAddFailed{
 			Func:   badFunc,
 			Reason: err,
 		}
