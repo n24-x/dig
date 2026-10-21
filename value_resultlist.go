@@ -48,12 +48,12 @@ func (rl resultList) DotResults() []*dot.Result {
 }
 
 func newResultList(ctype reflect.Type, opts resultOptions) (resultList, error) {
-	numReturnParameters := ctype.NumOut()
-	results := make([]result, 0, numReturnParameters)
-	resultIndexes := make([]int, numReturnParameters)
+	numReturnResults := ctype.NumOut()
+	results := make([]result, 0, numReturnResults)
+	resultIndexes := make([]int, numReturnResults)
 
 	resultIndex := 0
-	for idx := range numReturnParameters {
+	for idx := range numReturnResults {
 		typ := ctype.Out(idx)
 		if isError(typ) {
 			resultIndexes[idx] = -1
