@@ -160,3 +160,14 @@ func As(types ...any) Option[*resourceOptions] {
 		ro.As = append(ro.As, types...)
 	}
 }
+
+// FillConstructorInfo records what the container understood from the
+// constructor into info. Passing a nil info is a no-op.
+func FillConstructorInfo(info *ConstructorInfo) Option[*resourceOptions] {
+	return func(ro *resourceOptions) {
+		if ro == nil {
+			return
+		}
+		ro.Info = info
+	}
+}
