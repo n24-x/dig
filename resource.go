@@ -5,6 +5,7 @@ import (
 	"reflect"
 
 	"github.com/n24-x/dig/internal/digreflect"
+	"github.com/n24-x/dig/internal/dot"
 )
 
 func (ct *Container) Resource(ctor any, opts ...Option[*resourceOptions]) error {
@@ -47,7 +48,7 @@ func (sp *Scope) Resource(ctor any, opts ...Option[*resourceOptions]) error {
 	return nil
 }
 
-func (sp *Scope) resource(ctor any, options resourceOptions) (err error) {
+func (sp *Scope) resource(ctor any, options resourceOptions) error {
 	node, err := newConstructorNode(ctor, constructorOptions{
 		Result: resultOptions{
 			ValueName: options.ValueName,
@@ -60,10 +61,49 @@ func (sp *Scope) resource(ctor any, options resourceOptions) (err error) {
 		return err
 	}
 
-	// TODO register node in the DAG, detect duplicate providers, then fill
-	// options.Info with the receipt.
-	_ = node
+	if reason := sp.checkResource(node.Provides()); reason != "" {
+		return newErrInvalidInput(reason, nil)
+	}
+
+	id, _, err := sp.dag.Add(node)
+	if err != nil {
+		// TODO(next): handle *dag.CycleError
+		return err
+	}
+
+	if info := options.Info; info != nil {
+		info.DagID = DagID(id)
+		info.Params = paramInfos(node.ParamList().DotParams())
+		info.Results = resultInfos(node.ResultList().DotResults())
+	}
+
 	return nil
+}
+
+func (sp *Scope) checkResource(rs []resourceType) string {
+	// inner
+	dup := make(map[resourceType]struct{})
+	for _, typ := range rs {
+		if typ.groupName != "" {
+			continue
+		}
+		if _, ok := dup[typ]; ok {
+			return fmt.Sprintf("duplicate result type %s", typ)
+		}
+		dup[typ] = struct{}{}
+	}
+
+	// scope
+	for _, typ := range rs {
+		if typ.groupName != "" {
+			continue
+		}
+		if len(sp.dag.Provide(typ)) > 0 {
+			return fmt.Sprintf("result type %s has already been added", typ)
+		}
+	}
+
+	return ""
 }
 
 // Name sets the name of the provided value.
@@ -154,6 +194,31 @@ type ResultInfo struct {
 	valueName string
 
 	groupName string
+}
+
+func paramInfos(dotParams []*dot.Param) []*ParamInfo {
+	infos := make([]*ParamInfo, len(dotParams))
+	for i, p := range dotParams {
+		infos[i] = &ParamInfo{
+			valueType: p.ValueType,
+			optional:  p.Optional,
+			valueName: p.ValueName,
+			groupName: p.GroupName,
+		}
+	}
+	return infos
+}
+
+func resultInfos(dotResults []*dot.Result) []*ResultInfo {
+	infos := make([]*ResultInfo, len(dotResults))
+	for i, r := range dotResults {
+		infos[i] = &ResultInfo{
+			valueType: r.ValueType,
+			valueName: r.ValueName,
+			groupName: r.GroupName,
+		}
+	}
+	return infos
 }
 
 // String returns a string representation of ParamInfo from a validated constructor.
