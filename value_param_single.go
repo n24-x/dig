@@ -14,7 +14,10 @@ type valueParam struct {
 	Optional  bool
 }
 
-var _ func(reflect.Type) valueParam = newValueParam
+var (
+	_ func(reflect.Type) valueParam   = newValueParam
+	_ interface{ key() resourceType } = valueParam{}
+)
 
 func (ps valueParam) String() string {
 	// tally.Scope[optional] means optional
@@ -35,6 +38,18 @@ func (ps valueParam) String() string {
 	return fmt.Sprintf("%v[%v]", ps.ValueType, strings.Join(opts, ", "))
 }
 
+// key returns the resource this param resolves to: the value type together
+// with the name it was requested under.
+//
+// Both Requires and Build go through key so that the resource declared in the
+// graph and the resource looked up at execution time cannot drift apart.
+func (ps valueParam) key() resourceType {
+	return resourceType{
+		valueType: ps.ValueType,
+		valueName: ps.ValueName,
+	}
+}
+
 // Requires reports the resource this param depends on.
 //
 // Optional params are not reported: graph edges are "must build" edges, so
@@ -44,12 +59,7 @@ func (ps valueParam) Requires() []resourceType {
 	if ps.Optional {
 		return nil
 	}
-	return []resourceType{
-		{
-			valueType: ps.ValueType,
-			valueName: ps.ValueName,
-		},
-	}
+	return []resourceType{ps.key()}
 }
 
 func (ps valueParam) DotParams() []*dot.Param {
