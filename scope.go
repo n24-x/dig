@@ -18,6 +18,8 @@ type Scope struct {
 	// parentScope *Scope
 }
 
+var _ func() *Scope = newScope
+
 func newScope() *Scope {
 	return &Scope{
 		dag: dag.New[resourceType](),

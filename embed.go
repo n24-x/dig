@@ -42,6 +42,11 @@ var (
 	_providedPtrType = reflect.TypeFor[*Provided]()
 )
 
+var (
+	_ func(any) bool = IsRequired
+	_ func(any) bool = IsProvided
+)
+
 func IsRequired(value any) bool {
 	return embedsType(value, _requiredType)
 }
@@ -49,8 +54,3 @@ func IsRequired(value any) bool {
 func IsProvided(value any) bool {
 	return embedsType(value, _providedType)
 }
-
-var (
-	_ func(any) bool = IsRequired
-	_ func(any) bool = IsProvided
-)

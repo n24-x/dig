@@ -13,7 +13,7 @@ type param interface {
 	Requires() []resourceType
 
 	// TODO
-	// Build(containerStore) (reflect.Value, error)
+	// Build(*Scope) (reflect.Value, error)
 
 	DotParams() []*dot.Param
 }

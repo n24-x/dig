@@ -40,6 +40,8 @@ type resourceOptions struct {
 	Info      *ResourceReceiptInfo
 }
 
+var _ interface{ Validate() error } = (*resourceOptions)(nil)
+
 // Validate reports whether the option combination is usable. Options are
 // validated as a set, because some constraints span multiple fields (Name and
 // Group are mutually exclusive).

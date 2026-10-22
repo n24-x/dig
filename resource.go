@@ -11,6 +11,13 @@ import (
 	dag "github.com/n24-x/dag-go"
 )
 
+var (
+	_ func(*Container, any, ...Option[*resourceOptions]) error = (*Container).Resource
+	_ func(*Scope, any, ...Option[*resourceOptions]) error     = (*Scope).Resource
+	_ func(*Scope, any, resourceOptions) error                 = (*Scope).resource
+	_ func(*Scope, []resourceType) string                      = (*Scope).checkResource
+)
+
 func (ct *Container) Resource(ctor any, opts ...Option[*resourceOptions]) error {
 	return ct.rootScope.Resource(ctor, opts...)
 }
@@ -114,6 +121,14 @@ func (sp *Scope) checkResource(rs []resourceType) string {
 	return ""
 }
 
+var (
+	_ func(string) Option[*resourceOptions]               = Name
+	_ func(string) Option[*resourceOptions]               = Group
+	_ func(uintptr) Option[*resourceOptions]              = LocationForPC
+	_ func(...any) Option[*resourceOptions]               = As
+	_ func(*ResourceReceiptInfo) Option[*resourceOptions] = ResourceReceipt
+)
+
 // Name sets the name of the provided value.
 //
 // TODO cleanup
@@ -203,6 +218,14 @@ type ResultInfo struct {
 
 	groupName string
 }
+
+var (
+	_ fmt.Stringer = (*ParamInfo)(nil)
+	_ fmt.Stringer = (*ResultInfo)(nil)
+
+	_ func([]*dot.Param) []*ParamInfo   = paramInfos
+	_ func([]*dot.Result) []*ResultInfo = resultInfos
+)
 
 func paramInfos(dotParams []*dot.Param) []*ParamInfo {
 	infos := make([]*ParamInfo, len(dotParams))
