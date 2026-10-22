@@ -89,6 +89,19 @@ func TestNewConstructorNodeGoodCases(t *testing.T) {
 			wantProvides: []resourceType{kTyp1Group},
 		},
 		{
+			name:         "duplicateGroupResultsGoodData10: same type may join the same group twice",
+			input:        func() duplicateGroupResultsGoodData10 { return duplicateGroupResultsGoodData10{} },
+			wantProvides: []resourceType{kTyp1Group, kTyp1Group},
+		},
+		{
+			name:  "mixedGroupResultsGoodData11: the value type is part of the group key",
+			input: func() mixedGroupResultsGoodData11 { return mixedGroupResultsGoodData11{} },
+			wantProvides: []resourceType{
+				{valueType: reflect.TypeFor[*typ1](), groupName: "rain"},
+				{valueType: reflect.TypeFor[*typ2](), groupName: "rain"},
+			},
+		},
+		{
 			name:         "As replaces the provided type",
 			input:        func() *bytes.Buffer { return nil },
 			opts:         constructorOptions{Result: resultOptions{As: []any{new(io.Reader)}}},
