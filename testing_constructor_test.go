@@ -102,6 +102,21 @@ func TestNewConstructorNodeGoodCases(t *testing.T) {
 			},
 		},
 		{
+			// Variadic arguments are not filled yet, so the tail is dropped
+			// entirely from the parameter list.
+			name:         "variadic only: the variadic parameter is skipped",
+			input:        func(rest ...*typ1) *typ2 { return nil },
+			wantProvides: []resourceType{kTyp2},
+		},
+		{
+			// Only the variadic tail is skipped; the leading parameter is a
+			// regular dependency.
+			name:         "variadic tail: only the variadic parameter is skipped",
+			input:        func(a *typ3, rest ...*typ1) *typ2 { return nil },
+			wantRequires: []resourceType{kTyp3},
+			wantProvides: []resourceType{kTyp2},
+		},
+		{
 			name:         "As replaces the provided type",
 			input:        func() *bytes.Buffer { return nil },
 			opts:         constructorOptions{Result: resultOptions{As: []any{new(io.Reader)}}},
