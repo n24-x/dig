@@ -76,3 +76,18 @@ func newResultList(ctype reflect.Type, opts resultOptions) (resultList, error) {
 		resultIndexes: resultIndexes,
 	}, nil
 }
+
+func (rl resultList) ExtractList(w valueWriter, values []reflect.Value) error {
+	for i, v := range values {
+		if idx := rl.resultIndexes[i]; idx >= 0 {
+			rl.Results[idx].Extract(w, v)
+			continue
+		}
+
+		// ctor error
+		if err, _ := v.Interface().(error); err != nil {
+			return err
+		}
+	}
+	return nil
+}

@@ -11,8 +11,7 @@ import (
 type result interface {
 	Provides() []resourceType
 
-	// TODO
-	// Extract(containerWriter, bool, reflect.Value)
+	Extract(w valueWriter, v reflect.Value)
 
 	DotResults() []*dot.Result
 }

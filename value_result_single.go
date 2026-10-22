@@ -34,6 +34,9 @@ func (r valueResult) Provides() []resourceType {
 	return keys
 }
 
+// TODO
+func (r valueResult) Extract(w valueWriter, v reflect.Value) {}
+
 func (r valueResult) DotResults() []*dot.Result {
 	dotResults := []*dot.Result{
 		{
