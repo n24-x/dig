@@ -14,12 +14,15 @@ type Scope struct {
 	values      map[resourceType]reflect.Value
 	valueGroups map[resourceType][]reflect.Value
 
+	callFn callFn
+
 	// TODO
 	// recoverFromPanics        bool
 	// deferAcyclicVerification bool
-	// setupFn
 	// parentScope *Scope
 }
+
+type callFn func(fn reflect.Value, args []reflect.Value) (results []reflect.Value)
 
 var _ func() *Scope = newScope
 
@@ -34,6 +37,7 @@ func newScope() *Scope {
 		dag:         dag.New[resourceType](),
 		values:      make(map[resourceType]reflect.Value),
 		valueGroups: make(map[resourceType][]reflect.Value),
+		callFn:      defaultCallFn,
 	}
 }
 
