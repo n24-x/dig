@@ -93,3 +93,8 @@ func newValueParamGroup(sf reflect.StructField) (valueParamGroup, error) {
 		Passive:   g.Passive,
 	}, nil
 }
+
+// TODO
+func (po valueParamGroup) Value(sp *Scope) (reflect.Value, error) {
+	return reflect.Value{}, nil
+}

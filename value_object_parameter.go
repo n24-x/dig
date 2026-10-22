@@ -142,3 +142,8 @@ func newParameterObjectField(idx int, sf reflect.StructField) (parameterObjectFi
 		Param:      p,
 	}, nil
 }
+
+// TODO
+func (po parameterObject) Value(sp *Scope) (reflect.Value, error) {
+	return reflect.Value{}, nil
+}

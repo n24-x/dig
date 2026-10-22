@@ -11,10 +11,7 @@ type param interface {
 	fmt.Stringer
 
 	Requires() []resourceType
-
-	// TODO
-	// Build(*Scope) (reflect.Value, error)
-
+	Value(*Scope) (reflect.Value, error)
 	DotParams() []*dot.Param
 }
 

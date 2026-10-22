@@ -19,23 +19,29 @@ var (
 	_ interface{ key() resourceType } = valueParam{}
 )
 
-func (ps valueParam) String() string {
+func newValueParam(typ reflect.Type) valueParam {
+	return valueParam{
+		ValueType: typ,
+	}
+}
+
+func (pm valueParam) String() string {
 	// tally.Scope[optional] means optional
 	// tally.Scope[optional, name="foo"] means named optional
 
 	var opts []string
-	if ps.Optional {
+	if pm.Optional {
 		opts = append(opts, "optional")
 	}
-	if ps.ValueName != "" {
-		opts = append(opts, fmt.Sprintf("name=%q", ps.ValueName))
+	if pm.ValueName != "" {
+		opts = append(opts, fmt.Sprintf("name=%q", pm.ValueName))
 	}
 
 	if len(opts) == 0 {
-		return fmt.Sprint(ps.ValueType)
+		return fmt.Sprint(pm.ValueType)
 	}
 
-	return fmt.Sprintf("%v[%v]", ps.ValueType, strings.Join(opts, ", "))
+	return fmt.Sprintf("%v[%v]", pm.ValueType, strings.Join(opts, ", "))
 }
 
 // key returns the resource this param resolves to: the value type together
@@ -43,10 +49,10 @@ func (ps valueParam) String() string {
 //
 // Both Requires and Build go through key so that the resource declared in the
 // graph and the resource looked up at execution time cannot drift apart.
-func (ps valueParam) key() resourceType {
+func (pm valueParam) key() resourceType {
 	return resourceType{
-		valueType: ps.ValueType,
-		valueName: ps.ValueName,
+		valueType: pm.ValueType,
+		valueName: pm.ValueName,
 	}
 }
 
@@ -55,27 +61,36 @@ func (ps valueParam) key() resourceType {
 // Optional params are not reported: graph edges are "must build" edges, so
 // an optional dependency that nobody provides must not fail resolution.
 // Build is responsible for falling back to a zero value.
-func (ps valueParam) Requires() []resourceType {
-	if ps.Optional {
+func (pm valueParam) Requires() []resourceType {
+	if pm.Optional {
 		return nil
 	}
-	return []resourceType{ps.key()}
+	return []resourceType{pm.key()}
 }
 
-func (ps valueParam) DotParams() []*dot.Param {
+// TODO
+func (pm valueParam) Value(sp *Scope) (reflect.Value, error) {
+	// TODO decorated
+
+	if v, ok := sp.getValue(pm.key()); ok {
+		return v, nil
+	}
+
+	if pm.Optional {
+		return reflect.Zero(pm.ValueType), nil
+	}
+
+	return reflect.Value{}, errValueNotFound{key: pm.key()}
+}
+
+func (pm valueParam) DotParams() []*dot.Param {
 	return []*dot.Param{
 		{
 			Node: &dot.Node{
-				ValueType: ps.ValueType,
-				ValueName: ps.ValueName,
+				ValueType: pm.ValueType,
+				ValueName: pm.ValueName,
 			},
-			Optional: ps.Optional,
+			Optional: pm.Optional,
 		},
-	}
-}
-
-func newValueParam(typ reflect.Type) valueParam {
-	return valueParam{
-		ValueType: typ,
 	}
 }

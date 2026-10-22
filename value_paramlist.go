@@ -69,3 +69,15 @@ func newParamList(ctype reflect.Type) (paramList, error) {
 	}
 	return pl, nil
 }
+
+func (pl paramList) Args(sp *Scope) ([]reflect.Value, error) {
+	args := make([]reflect.Value, len(pl.Params))
+	for i, p := range pl.Params {
+		var err error
+		args[i], err = p.Value(sp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return args, nil
+}
