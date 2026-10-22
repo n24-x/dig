@@ -109,6 +109,21 @@ func (sp *Scope) Resource(ctor any, opts ...Option[*resourceOptions]) error {
 }
 
 func (sp *Scope) resource(ctor any, options resourceOptions) (err error) {
+	node, err := newConstructorNode(ctor, constructorOptions{
+		Result: resultOptions{
+			ValueName: options.ValueName,
+			GroupName: options.GroupName,
+			As:        options.As,
+		},
+		Location: options.Location,
+	})
+	if err != nil {
+		return err
+	}
+
+	// TODO register node in the DAG, detect duplicate providers, then fill
+	// options.Info with the receipt.
+	_ = node
 	return nil
 }
 
