@@ -37,7 +37,7 @@ type resourceOptions struct {
 	GroupName string
 	As        []any
 	Location  *digreflect.Func
-	Info      *ConstructorInfo
+	Info      *ResourceReceiptInfo
 }
 
 // Validate reports whether the option combination is usable. Options are
