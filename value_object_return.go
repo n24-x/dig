@@ -30,22 +30,24 @@ type returnObjectField struct {
 
 var _ func(int, reflect.StructField, resultOptions) (returnObjectField, error) = newReturnObjectField
 
-func (po returnObject) Provides() []resourceType {
-	if len(po.Fields) == 0 {
+func (ro returnObject) Provides() []resourceType {
+	if len(ro.Fields) == 0 {
 		return []resourceType{}
 	}
 
 	var keys []resourceType
-	for _, f := range po.Fields {
+	for _, f := range ro.Fields {
 		keys = append(keys, f.Result.Provides()...)
 	}
 
 	return keys
 }
 
-func (po returnObject) DotResults() []*dot.Result {
+func (ro returnObject) Extract(w valueWriter, v reflect.Value) {}
+
+func (ro returnObject) DotResults() []*dot.Result {
 	var dotResults []*dot.Result
-	for _, f := range po.Fields {
+	for _, f := range ro.Fields {
 		dotResults = append(dotResults, f.Result.DotResults()...)
 	}
 	return dotResults

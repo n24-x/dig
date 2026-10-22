@@ -23,8 +23,10 @@ type constructorNode struct {
 	paramList  paramList
 	resultList resultList
 
+	called bool
+
 	// TODO
-	// called bool、callback/beforeCallback
+	// callback/beforeCallback
 }
 
 var (
@@ -34,6 +36,7 @@ var (
 	_ interface{ ResultList() resultList }     = (*constructorNode)(nil)
 	_ interface{ DotID() dot.ConstructorID }   = (*constructorNode)(nil)
 	_ interface{ CType() reflect.Type }        = (*constructorNode)(nil)
+	_ interface{ Call(sp *Scope) error }       = (*constructorNode)(nil)
 )
 
 var _ func(any, constructorOptions) (*constructorNode, error) = newConstructorNode
@@ -92,3 +95,27 @@ func (cn *constructorNode) ParamList() paramList       { return cn.paramList }
 func (cn *constructorNode) ResultList() resultList     { return cn.resultList }
 func (cn *constructorNode) DotID() dot.ConstructorID   { return cn.dotID }
 func (cn *constructorNode) CType() reflect.Type        { return cn.ctype }
+
+func (cn *constructorNode) Call(sp *Scope) error {
+	if cn.called {
+		return nil
+	}
+
+	args, err := cn.paramList.Args(sp)
+	if err != nil {
+		return errArgumentsFailed{Func: cn.location, Reason: err}
+	}
+
+	staging := newStagingValues()
+	results := reflect.ValueOf(cn.constructor).Call(args)
+	if err := cn.resultList.ExtractList(staging, results); err != nil {
+		return errConstructorFailed{
+			Func:   cn.location,
+			Reason: err,
+		}
+	}
+
+	staging.Commit(sp)
+	cn.called = true
+	return nil
+}

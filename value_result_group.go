@@ -42,6 +42,8 @@ func (rg valueResultGroup) Provides() []resourceType {
 	return keys
 }
 
+func (rg valueResultGroup) Extract(w valueWriter, v reflect.Value) {}
+
 func (rg valueResultGroup) DotResults() []*dot.Result {
 	dotResults := []*dot.Result{
 		{

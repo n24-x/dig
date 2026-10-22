@@ -20,6 +20,7 @@ var (
 	_ digError = errCycleDetected{}
 	_ digError = errArgumentsFailed{}
 	_ digError = errValueNotFound{}
+	_ digError = errConstructorFailed{}
 )
 
 var _ func(string, error) errInvalidInput = newErrInvalidInput
@@ -162,5 +163,24 @@ func (e errValueNotFound) writeMessage(w io.Writer, _ string) {
 }
 
 func (e errValueNotFound) Format(w fmt.State, c rune) {
+	formatError(e, w, c)
+}
+
+// errConstructorFailed is returned when a constructor ran but its results
+// could not be extracted, or when the constructor returned an error.
+type errConstructorFailed struct {
+	Func   *digreflect.Func
+	Reason error
+}
+
+func (e errConstructorFailed) Error() string { return fmt.Sprint(e) }
+
+func (e errConstructorFailed) Unwrap() error { return e.Reason }
+
+func (e errConstructorFailed) writeMessage(w io.Writer, verb string) {
+	_, _ = fmt.Fprintf(w, "cannot run constructor "+verb, e.Func)
+}
+
+func (e errConstructorFailed) Format(w fmt.State, c rune) {
 	formatError(e, w, c)
 }
