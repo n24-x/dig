@@ -243,6 +243,26 @@ func TestNewConstructorNodeBadCases(t *testing.T) {
 			opts:    constructorOptions{Result: resultOptions{As: []any{new(io.Closer)}}},
 			wantErr: "does not implement",
 		},
+		{
+			name:    "no results at all",
+			input:   func() {},
+			wantErr: "must provide at least one non-error type",
+		},
+		{
+			name:    "only an error result",
+			input:   func() error { return nil },
+			wantErr: "must provide at least one non-error type",
+		},
+		{
+			name:    "only error results",
+			input:   func() (error, error) { return nil, nil },
+			wantErr: "must provide at least one non-error type",
+		},
+		{
+			name:    "emptyResultsBadData17: return-struct without fields",
+			input:   func() emptyResultsBadData17 { return emptyResultsBadData17{} },
+			wantErr: "must provide at least one non-error type",
+		},
 	}
 
 	for _, tt := range tests {

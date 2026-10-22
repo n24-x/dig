@@ -39,19 +39,22 @@ var (
 var _ func(any, constructorOptions) (*constructorNode, error) = newConstructorNode
 
 // newConstructorNode parses ctor into a dag node.
-//
-// ctor MUST have been validated by the caller.
 func newConstructorNode(ctor any, opts constructorOptions) (*constructorNode, error) {
 	cval := reflect.ValueOf(ctor)
 	ctype := cval.Type()
 	cptr := cval.Pointer()
 
-	params, err := newParamList(ctype)
+	results, err := newResultList(ctype, opts.Result)
 	if err != nil {
 		return nil, err
 	}
 
-	results, err := newResultList(ctype, opts.Result)
+	if len(results.Provides()) == 0 {
+		return nil, newErrInvalidInput(
+			fmt.Sprintf("constructor %v must provide at least one non-error type result", ctype), nil)
+	}
+
+	params, err := newParamList(ctype)
 	if err != nil {
 		return nil, err
 	}
