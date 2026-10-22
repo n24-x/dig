@@ -287,3 +287,11 @@ var (
 	_ = resultsBadData16{}
 	_ = resultsBadData16Inner{}
 )
+
+// Bad Data 17
+// result side: a return-struct with no fields provides nothing
+type emptyResultsBadData17 struct {
+	Provided
+}
+
+var _ = emptyResultsBadData17{}
