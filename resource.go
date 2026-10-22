@@ -1,11 +1,14 @@
 package dig
 
 import (
+	"errors"
 	"fmt"
 	"reflect"
 
 	"github.com/n24-x/dig/internal/digreflect"
 	"github.com/n24-x/dig/internal/dot"
+
+	dag "github.com/n24-x/dag-go"
 )
 
 func (ct *Container) Resource(ctor any, opts ...Option[*resourceOptions]) error {
@@ -67,8 +70,13 @@ func (sp *Scope) resource(ctor any, options resourceOptions) error {
 
 	id, _, err := sp.dag.Add(node)
 	if err != nil {
-		// TODO(next): handle *dag.CycleError
-		return err
+		if _, ok := errors.AsType[*dag.CycleError[resourceType]](err); !ok {
+			return err
+		}
+		return errCycleDetected{
+			Message: "cycle detected",
+			Cause:   err,
+		}
 	}
 
 	if info := options.Info; info != nil {
