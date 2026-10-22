@@ -79,6 +79,28 @@ type flattenResultsGoodData9 struct {
 
 var _ = flattenResultsGoodData9{}
 
+// Two fields of the same type contribute to the same group: legal, because a
+// group accepts multiple values for one key.
+type duplicateGroupResultsGoodData10 struct {
+	Provided
+
+	A *typ1 `group:"rain"`
+	B *typ1 `group:"rain"`
+}
+
+var _ = duplicateGroupResultsGoodData10{}
+
+// Two fields of different types share a group name: legal, and they form two
+// distinct group keys, because the value type is part of the key.
+type mixedGroupResultsGoodData11 struct {
+	Provided
+
+	A *typ1 `group:"rain"`
+	B *typ2 `group:"rain"`
+}
+
+var _ = mixedGroupResultsGoodData11{}
+
 // ---- Bad cases (simple -> complex) ----
 
 // Bad Data 1
