@@ -13,10 +13,13 @@ type paramList struct {
 }
 
 var (
-	_ interface{ fmt.Stringer }              = paramList{}
-	_ interface{ Requires() []resourceType } = paramList{}
-	_ interface{ DotParams() []*dot.Param }  = paramList{}
-	_ func(reflect.Type) (paramList, error)  = newParamList
+	_ interface {
+		fmt.Stringer
+		Requires() []resourceType
+		DotParams() []*dot.Param
+	} = paramList{}
+
+	_ func(reflect.Type) (paramList, error) = newParamList
 )
 
 func (pl paramList) String() string {
