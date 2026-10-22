@@ -18,6 +18,8 @@ var (
 	_ digError = errInvalidGroupOption{}
 	_ digError = errResourceAddFailed{}
 	_ digError = errCycleDetected{}
+	_ digError = errArgumentsFailed{}
+	_ digError = errValueNotFound{}
 )
 
 var _ func(string, error) errInvalidInput = newErrInvalidInput
@@ -111,5 +113,54 @@ func (e errCycleDetected) writeMessage(w io.Writer, _ string) {
 }
 
 func (e errCycleDetected) Format(w fmt.State, c rune) {
+	formatError(e, w, c)
+}
+
+// errArgumentsFailed is returned when a function could not be run because one
+// of its dependencies failed to build for any reason.
+type errArgumentsFailed struct {
+	Func   *digreflect.Func
+	Reason error
+}
+
+func (e errArgumentsFailed) Error() string { return fmt.Sprint(e) }
+
+func (e errArgumentsFailed) Unwrap() error { return e.Reason }
+
+func (e errArgumentsFailed) writeMessage(w io.Writer, verb string) {
+	_, _ = fmt.Fprintf(w, "cannot build arguments for function "+verb, e.Func)
+}
+
+func (e errArgumentsFailed) Format(w fmt.State, c rune) {
+	formatError(e, w, c)
+}
+
+// errValueNotFound is returned when a param asks the scope for a value that has
+// not been built.
+//
+// This is an invariant violation rather than a user error: dag.Resolve
+// guarantees that every provider of a non-optional dependency runs before its
+// consumers, so by the time Build runs the value must already be in the scope.
+// Optional params and passive groups do not reach this branch; they fall back
+// to a zero value or an empty slice before consulting the store.
+//
+// In practice it fires when the set of keys a node provides and the set of keys
+// it writes at extraction time disagree.
+//
+// It deliberately has no Unwrap: there is no cause, and formatError would print
+// one a second time if it existed.
+//
+// TODO simplify
+type errValueNotFound struct {
+	key resourceType
+}
+
+func (e errValueNotFound) Error() string { return fmt.Sprint(e) }
+
+func (e errValueNotFound) writeMessage(w io.Writer, _ string) {
+	_, _ = fmt.Fprintf(w, "value not found in scope: %v", e.key)
+}
+
+func (e errValueNotFound) Format(w fmt.State, c rune) {
 	formatError(e, w, c)
 }
