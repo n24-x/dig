@@ -7,7 +7,11 @@ import (
 	"github.com/n24-x/dig/internal/digreflect"
 )
 
-type ConstructorInfo struct {
+// ResourceReceiptInfo is the receipt of a successful resource registration.
+//
+// It records what the container understood from the constructor: the DAG node
+// it became, and the resources it consumes and provides.
+type ResourceReceiptInfo struct {
 	DagID   DagID
 	Params  []*ParamInfo
 	Results []*ResultInfo
@@ -158,9 +162,11 @@ func As(types ...any) Option[*resourceOptions] {
 	}
 }
 
-// FillConstructorInfo records what the container understood from the
-// constructor into info. Passing a nil info is a no-op.
-func FillConstructorInfo(info *ConstructorInfo) Option[*resourceOptions] {
+// ResourceReceipt writes the receipt of this resource registration into info.
+//
+// The receipt is filled only after the resource has been registered
+// successfully. Passing a nil info is a no-op.
+func ResourceReceipt(info *ResourceReceiptInfo) Option[*resourceOptions] {
 	return func(ro *resourceOptions) {
 		if ro == nil {
 			return
