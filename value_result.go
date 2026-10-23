@@ -85,6 +85,10 @@ func newResult(typ reflect.Type, opts resultOptions) (result, error) {
 					"in return-struct, only slice field can use group-tag with flatten:"+
 						" %v is not a slice", typ), nil)
 			}
+			// TODO: when As was given, rg.ValueType is already the interface
+			// type and reflect.Type.Elem panics on interfaces. Upstream dig has
+			// the same ordering, so this is inherited rather than introduced.
+			// Reject the flatten+As combination, or define what it means, in T5.
 			rg.ValueType = rg.ValueType.Elem()
 		}
 		return rg, nil

@@ -40,12 +40,20 @@ func (pg valueParamGroup) Requires() []resourceType {
 	if pg.Passive {
 		return nil
 	}
-	return []resourceType{
-		{
-			valueType: pg.ValueType.Elem(),
-			groupName: pg.GroupName,
-		},
+	return []resourceType{pg.key()}
+}
+
+func (pg valueParamGroup) Value(sp *Scope) (reflect.Value, error) {
+	// TODO
+	// handle nil
+	// Shuffle
+	// handle passive
+	items := sp.valueGroups[pg.key()]
+	out := reflect.MakeSlice(pg.ValueType, 0, len(items))
+	for _, item := range items {
+		out = reflect.Append(out, item)
 	}
+	return out, nil
 }
 
 func (pg valueParamGroup) DotParams() []*dot.Param {
@@ -94,7 +102,9 @@ func newValueParamGroup(sf reflect.StructField) (valueParamGroup, error) {
 	}, nil
 }
 
-// TODO
-func (po valueParamGroup) Value(sp *Scope) (reflect.Value, error) {
-	return reflect.Value{}, nil
+func (pg valueParamGroup) key() resourceType {
+	return resourceType{
+		valueType: pg.ValueType.Elem(), // group value type
+		groupName: pg.GroupName,
+	}
 }

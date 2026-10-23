@@ -43,7 +43,11 @@ func (ro returnObject) Provides() []resourceType {
 	return keys
 }
 
-func (ro returnObject) Extract(w valueWriter, v reflect.Value) {}
+func (ro returnObject) Extract(w valueWriter, v reflect.Value) {
+	for _, f := range ro.Fields {
+		f.Result.Extract(w, v.Field(f.FieldIndex))
+	}
+}
 
 func (ro returnObject) DotResults() []*dot.Result {
 	var dotResults []*dot.Result
