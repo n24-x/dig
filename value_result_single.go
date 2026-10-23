@@ -20,10 +20,7 @@ var _ func(reflect.Type, resultOptions) (valueResult, error) = newValueResult
 
 func (r valueResult) Provides() []resourceType {
 	keys := []resourceType{
-		{
-			valueType: r.ValueType,
-			valueName: r.ValueName,
-		},
+		r.key(),
 	}
 	for _, typ := range r.As {
 		keys = append(keys, resourceType{
@@ -34,8 +31,11 @@ func (r valueResult) Provides() []resourceType {
 	return keys
 }
 
-// TODO
-func (r valueResult) Extract(w valueWriter, v reflect.Value) {}
+func (r valueResult) Extract(w valueWriter, v reflect.Value) {
+	for _, key := range r.Provides() {
+		w.setValue(key, v)
+	}
+}
 
 func (r valueResult) DotResults() []*dot.Result {
 	dotResults := []*dot.Result{
@@ -91,4 +91,11 @@ func newValueResult(typ reflect.Type, opts resultOptions) (valueResult, error) {
 		ValueName: opts.ValueName,
 		As:        asTypes[1:],
 	}, nil
+}
+
+func (r valueResult) key() resourceType {
+	return resourceType{
+		valueType: r.ValueType,
+		valueName: r.ValueName,
+	}
 }

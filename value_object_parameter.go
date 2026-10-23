@@ -52,6 +52,18 @@ func (ro parameterObject) Requires() []resourceType {
 	return keys
 }
 
+func (ro parameterObject) Value(sp *Scope) (reflect.Value, error) {
+	dest := reflect.New(ro.Type).Elem()
+	for _, f := range ro.Fields {
+		v, err := f.Param.Value(sp)
+		if err != nil {
+			return reflect.Value{}, err
+		}
+		dest.Field(f.FieldIndex).Set(v)
+	}
+	return dest, nil
+}
+
 func (ro parameterObject) DotParams() []*dot.Param {
 	var params []*dot.Param
 	for _, f := range ro.Fields {
@@ -141,9 +153,4 @@ func newParameterObjectField(idx int, sf reflect.StructField) (parameterObjectFi
 		FieldIndex: idx,
 		Param:      p,
 	}, nil
-}
-
-// TODO
-func (po parameterObject) Value(sp *Scope) (reflect.Value, error) {
-	return reflect.Value{}, nil
 }

@@ -85,7 +85,7 @@ func (rl resultList) ExtractList(w valueWriter, values []reflect.Value) error {
 		}
 
 		// ctor error
-		if err, _ := v.Interface().(error); err != nil {
+		if err, _ := reflect.TypeAssert[error](v); err != nil {
 			return err
 		}
 	}

@@ -13,7 +13,8 @@ type valueResultGroup struct {
 	// Name of the group as specified in the `group:".."` tag.
 	GroupName string
 
-	// ValueType is the value or value element type contributed to the group.
+	// ValueType is group value type or slice type which
+	// element type is group value type.
 	ValueType reflect.Type
 
 	// Indicates elements of a value are to be injected individually, instead of
@@ -27,12 +28,7 @@ type valueResultGroup struct {
 var _ func(reflect.StructField) (valueResultGroup, error) = newValueResultGroup
 
 func (rg valueResultGroup) Provides() []resourceType {
-	keys := []resourceType{
-		{
-			valueType: rg.ValueType,
-			groupName: rg.GroupName,
-		},
-	}
+	keys := []resourceType{rg.key()}
 	for _, typ := range rg.As {
 		keys = append(keys, resourceType{
 			valueType: typ,
@@ -42,7 +38,18 @@ func (rg valueResultGroup) Provides() []resourceType {
 	return keys
 }
 
-func (rg valueResultGroup) Extract(w valueWriter, v reflect.Value) {}
+func (rg valueResultGroup) Extract(w valueWriter, v reflect.Value) {
+	if !rg.Flatten {
+		for _, key := range rg.Provides() {
+			w.submitGroup(key, v)
+		}
+		return
+	}
+
+	for i := range v.Len() {
+		w.submitGroup(rg.key(), v.Index(i))
+	}
+}
 
 func (rg valueResultGroup) DotResults() []*dot.Result {
 	dotResults := []*dot.Result{
@@ -110,4 +117,11 @@ func newValueResultGroup(sf reflect.StructField) (valueResultGroup, error) {
 		Flatten:   g.Flatten,
 		ValueType: valueType,
 	}, nil
+}
+
+func (rg valueResultGroup) key() resourceType {
+	return resourceType{
+		valueType: rg.ValueType,
+		groupName: rg.GroupName,
+	}
 }
