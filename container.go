@@ -33,7 +33,7 @@ func DryRun() Option[*Container] {
 		if ct == nil {
 			return
 		}
-		ct.rootScope.dryRun = true
+		ct.rootScope.callFn = dryCallFn
 	}
 }
 
