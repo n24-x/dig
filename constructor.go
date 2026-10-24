@@ -110,7 +110,7 @@ func (cn *constructorNode) Run(sp *Scope) error {
 	}
 
 	staging := newStagingValues()
-	results := sp.callFn(reflect.ValueOf(cn.constructor), args)
+	results := sp.fnCaller(reflect.ValueOf(cn.constructor), args)
 	if err := cn.resultList.ExtractList(staging, results); err != nil {
 		return errConstructorFailed{
 			Func:   cn.location,

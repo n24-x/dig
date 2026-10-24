@@ -53,7 +53,7 @@ func (sp *Scope) Setup(function any, opts ...Option[*SetupOptions]) error {
 		return errArgumentsFailed{Func: digreflect.InspectFunc(function), Reason: err}
 	}
 
-	out := sp.callFn(fval, args)
+	out := sp.fnCaller(fval, args)
 
 	err = findError(out)
 	if err != nil {
