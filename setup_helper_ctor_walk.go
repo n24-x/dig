@@ -58,30 +58,32 @@ func newCtorWalk(sp *Scope) *ctorWalk {
 }
 
 // visit emits id after everything it depends on.
-func (w *ctorWalk) visit(id dag.NodeID) error {
-	switch w.state[id] {
+func (w *ctorWalk) visit(nodeID dag.NodeID) error {
+	switch w.state[nodeID] {
 	case _black: // already emitted, nothing to do
 		return nil
 	case _gray: // reached again while still on the path
-		return fmt.Errorf("dig: cycle detected while ordering constructors at node %d", id)
+		// This error only for developers, should never be encountered by users.
+		return fmt.Errorf("dig: internal error: circular dependency detected while ordering constructors at node")
 	case _white:
 		// Fresh node: fall through to the walk below.
 	}
-	w.state[id] = _gray
+	w.state[nodeID] = _gray
 
-	cn, ok := w.sp.dag.At(id).(*constructorNode)
+	node, ok := w.sp.dag.At(nodeID).(*constructorNode)
 	if !ok {
-		return fmt.Errorf("dig: node %d is not a constructor", id)
+		// This error only for developers, should never be encountered by users.
+		return fmt.Errorf("dig: internal error: DAG node %d is not a constructor", nodeID)
 	}
 
 	// Required deps: dag edges. A required dep that nobody provides has no
 	// edge and would otherwise be skipped in silence, so check it here.
-	for _, key := range cn.Requires() {
+	for _, key := range node.Requires() {
 		if len(w.sp.dag.Provide(key)) == 0 {
 			w.addMissing(key)
 		}
 	}
-	for _, dep := range w.sp.dag.OutNeighbors(id) {
+	for _, dep := range w.sp.dag.OutNeighbors(nodeID) {
 		if err := w.visit(dep); err != nil {
 			return err
 		}
@@ -91,22 +93,22 @@ func (w *ctorWalk) visit(id dag.NodeID) error {
 	// If the provider would need this node to have run first, the two cannot
 	// both be satisfied; report it rather than silently handing the consumer a
 	// zero value.
-	for _, key := range cn.ParamList().Requires().Optional {
-		for _, dep := range w.sp.dag.Provide(key) {
-			if w.sp.requiredReaches(dep, id) {
+	for _, key := range node.ParamList().Requires().Optional {
+		for _, depNodeID := range w.sp.dag.Provide(key) {
+			if w.sp.requiredReaches(depNodeID, nodeID) {
 				return fmt.Errorf(
 					"dig: constructor %v optionally needs %v, but its provider %v "+
 						"requires this constructor: resolve the cycle",
-					cn, key, w.sp.dag.At(dep))
+					node, key, w.sp.dag.At(depNodeID))
 			}
-			if err := w.visit(dep); err != nil {
+			if err := w.visit(depNodeID); err != nil {
 				return err
 			}
 		}
 	}
 
-	w.state[id] = _black
-	w.order = append(w.order, id)
+	w.state[nodeID] = _black
+	w.order = append(w.order, nodeID)
 	return nil
 }
 
