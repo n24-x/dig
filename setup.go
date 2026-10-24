@@ -40,6 +40,20 @@ func (sp *Scope) Setup(function any, opts ...Option[*SetupOptions]) (err error) 
 		info.Params = params
 	}
 
+	// DeferAcyclicVerification skips the check at registration time, so the
+	// graph may still hold a cycle. Verify before anything walks it: ctorWalk
+	// would otherwise report the cycle as an internal error, and the point of
+	// deferring is that the user gets the same errCycleDetected either way.
+	if sp.needsAcyclicCheck {
+		if err = sp.dag.VerifyAcyclic(); err != nil {
+			return errCycleDetected{
+				Message: "cycle detected",
+				Cause:   err,
+			}
+		}
+		sp.needsAcyclicCheck = false
+	}
+
 	ctorOrder, err := sp.ctorRunOrder(funcPL)
 	if err != nil {
 		return err

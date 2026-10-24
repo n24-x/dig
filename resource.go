@@ -75,15 +75,9 @@ func (sp *Scope) resource(ctor any, options resourceOptions) error {
 		return newErrInvalidInput(reason, nil)
 	}
 
-	id, _, err := sp.dag.Add(node)
+	id, err := sp.registerNode(node)
 	if err != nil {
-		if _, ok := errors.AsType[*dag.CycleError[resourceType]](err); !ok {
-			return err
-		}
-		return errCycleDetected{
-			Message: "cycle detected",
-			Cause:   err,
-		}
+		return err
 	}
 
 	if info := options.Info; info != nil {
@@ -93,6 +87,34 @@ func (sp *Scope) resource(ctor any, options resourceOptions) error {
 	}
 
 	return nil
+}
+
+// registerNode adds node to the scope's graph and returns its ID.
+//
+// With DeferAcyclicVerification the node goes in unchecked and the scope
+// remembers that the graph still owes a whole-graph scan, which Setup pays for
+// before it runs anything. Without it, Add itself reports the cycle.
+//
+// Both paths reject a cycle with the same error type, so callers cannot tell
+// which one caught it.
+func (sp *Scope) registerNode(node *constructorNode) (dag.NodeID, error) {
+	if sp.deferAcyclicVerification {
+		id, _ := sp.dag.AddUnchecked(node)
+		sp.needsAcyclicCheck = true
+		return id, nil
+	}
+
+	id, _, err := sp.dag.Add(node)
+	if err != nil {
+		if _, ok := errors.AsType[*dag.CycleError[resourceType]](err); !ok {
+			return 0, err
+		}
+		return 0, errCycleDetected{
+			Message: "cycle detected",
+			Cause:   err,
+		}
+	}
+	return id, nil
 }
 
 func (sp *Scope) checkResource(rs []resourceType) string {
