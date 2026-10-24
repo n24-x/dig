@@ -17,7 +17,6 @@ type Scope struct {
 
 	callFn callFn
 
-	dryRun                   bool
 	recoverFromPanics        bool
 	deferAcyclicVerification bool
 
