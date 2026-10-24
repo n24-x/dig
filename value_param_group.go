@@ -46,11 +46,7 @@ func (pg valueParamGroup) Requires() resourceRequirements {
 }
 
 func (pg valueParamGroup) Value(sp *Scope) (reflect.Value, error) {
-	// TODO
-	// handle nil
-	// Shuffle
-	// handle passive
-	items := sp.valueGroups[pg.key()]
+	items := sp.lookupGroup(pg.key())
 	out := reflect.MakeSlice(pg.ValueType, 0, len(items))
 	for _, item := range items {
 		out = reflect.Append(out, item)
