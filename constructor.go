@@ -38,7 +38,7 @@ var (
 		ResultList() resultList
 		DotID() dot.ConstructorID
 		CType() reflect.Type
-		Call(sp *Scope) error
+		Run(sp *Scope) error
 	} = (*constructorNode)(nil)
 )
 
@@ -99,7 +99,7 @@ func (cn *constructorNode) ResultList() resultList     { return cn.resultList }
 func (cn *constructorNode) DotID() dot.ConstructorID   { return cn.dotID }
 func (cn *constructorNode) CType() reflect.Type        { return cn.ctype }
 
-func (cn *constructorNode) Call(sp *Scope) error {
+func (cn *constructorNode) Run(sp *Scope) error {
 	if cn.called {
 		return nil
 	}
