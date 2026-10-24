@@ -35,36 +35,9 @@ func (sp *Scope) Setup(function any, opts ...Option[*SetupOptions]) error {
 		info.Params = params
 	}
 
-	var ctorOrder []dag.NodeID
-	seen := make(map[dag.NodeID]bool) // TODO go1.28 change to container/set
-	for _, key := range funcPL.Requires().Required {
-		ids, err := dag.Resolve(sp.dag, key)
-		if err != nil {
-			return err // TODO handle *dag.MissingProviderError / CycleError
-		}
-		for _, id := range ids {
-			if !seen[id] {
-				seen[id] = true
-				ctorOrder = append(ctorOrder, id)
-			}
-		}
-	}
-	for _, key := range funcPL.Requires().Optional {
-		if len(sp.dag.Provide(key)) == 0 {
-			continue
-		}
-		ids, err := dag.Resolve(sp.dag, key)
-		if err != nil {
-			// TODO
-			// handle CycleError
-			return err
-		}
-		for _, id := range ids {
-			if !seen[id] {
-				seen[id] = true
-				ctorOrder = append(ctorOrder, id)
-			}
-		}
+	ctorOrder, err := sp.ctorRunOrder(funcPL)
+	if err != nil {
+		return err
 	}
 
 	for _, id := range ctorOrder {
@@ -87,6 +60,53 @@ func (sp *Scope) Setup(function any, opts ...Option[*SetupOptions]) error {
 	}
 
 	return nil
+}
+
+// ctorRunOrder returns the constructors that must run before function's
+// arguments can be assembled, in the order they have to run.
+//
+// Required params go first: dag.Resolve returns their whole build path in
+// post-order, so every dependency precedes its consumer. Optional params are
+// added afterwards, and only when somebody provides them; a param whose key
+// nobody provides keeps its zero value and contributes no node.
+func (sp *Scope) ctorRunOrder(funcPL paramList) ([]dag.NodeID, error) {
+	var order []dag.NodeID
+	seen := make(map[dag.NodeID]bool) // TODO go1.28 change to container/set
+
+	reqs := funcPL.Requires()
+
+	for _, key := range reqs.Required {
+		ids, err := dag.Resolve(sp.dag, key)
+		if err != nil {
+			return nil, err // TODO handle *dag.MissingProviderError / CycleError
+		}
+		for _, id := range ids {
+			if !seen[id] {
+				seen[id] = true
+				order = append(order, id)
+			}
+		}
+	}
+
+	for _, key := range reqs.Optional {
+		if len(sp.dag.Provide(key)) == 0 {
+			continue
+		}
+		ids, err := dag.Resolve(sp.dag, key)
+		if err != nil {
+			// TODO
+			// handle CycleError
+			return nil, err
+		}
+		for _, id := range ids {
+			if !seen[id] {
+				seen[id] = true
+				order = append(order, id)
+			}
+		}
+	}
+
+	return order, nil
 }
 
 var _ func(*SetupInfo) Option[*SetupOptions] = SetupReceipt
