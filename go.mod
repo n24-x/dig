@@ -3,7 +3,7 @@ module github.com/n24-x/dig
 go 1.27
 
 require (
-	github.com/n24-x/dag-go v0.2.0
+	github.com/n24-x/dag-go v0.3.0
 	github.com/stretchr/testify v1.12.1
 )
 
