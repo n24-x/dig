@@ -36,6 +36,11 @@ var (
 	_ digError = errConstructorFailed{}
 )
 
+var _ interface {
+	Error() string
+	Format(fmt.State, rune)
+} = PanicError{}
+
 var _ func(digError, fmt.State, rune) = formatError
 
 func formatError(e digError, w fmt.State, v rune) {
@@ -64,9 +69,29 @@ func formatError(e digError, w fmt.State, v rune) {
 
 var _ func(string, error) errInvalidInput = newErrInvalidInput
 
+// PanicError is what a panic raised by user code turns into when the container
+// was built with [RecoverFromPanics].
 type PanicError struct {
 	Func  *digreflect.Func
 	Panic any
+}
+
+// Error implements error.
+func (e PanicError) Error() string { return fmt.Sprint(e) }
+
+// Format prints the panic value and the function it happened in, expanding the
+// function to its file:line when formatted with %+v.
+func (e PanicError) Format(w fmt.State, c rune) {
+	verb := "%v"
+	if _, ok := e.Panic.(string); ok {
+		verb = "%q"
+	}
+
+	if w.Flag('+') && c == 'v' {
+		_, _ = fmt.Fprintf(w, "panic: "+verb+" in func: %+v", e.Panic, e.Func)
+		return
+	}
+	_, _ = fmt.Fprintf(w, "panic: "+verb+" in func: %v", e.Panic, e.Func)
 }
 
 // errInvalidInput represents an error caused by invalid input.
