@@ -57,15 +57,14 @@ func (pm valueParam) key() resourceType {
 }
 
 // Requires reports the resource this param depends on.
-//
-// Optional params are not reported: graph edges are "must build" edges, so
-// an optional dependency that nobody provides must not fail resolution.
-// Build is responsible for falling back to a zero value.
-func (pm valueParam) Requires() []resourceType {
+func (pm valueParam) Requires() resourceRequirements {
+	var rr resourceRequirements
 	if pm.Optional {
-		return nil
+		rr.Optional = []resourceType{pm.key()}
+		return rr
 	}
-	return []resourceType{pm.key()}
+	rr.Required = []resourceType{pm.key()}
+	return rr
 }
 
 // TODO

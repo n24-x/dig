@@ -86,7 +86,7 @@ func (cn *constructorNode) String() string {
 }
 
 func (cn *constructorNode) Requires() []resourceType {
-	return cn.paramList.Requires()
+	return cn.paramList.Requires().Required
 }
 
 func (cn *constructorNode) Provides() []resourceType {

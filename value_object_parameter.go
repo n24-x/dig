@@ -44,12 +44,18 @@ func (ro parameterObject) String() string {
 	return strings.Join(fields, " ")
 }
 
-func (ro parameterObject) Requires() []resourceType {
-	var keys []resourceType
+func (ro parameterObject) Requires() resourceRequirements {
+	var rr resourceRequirements
+
 	for _, f := range ro.Fields {
-		keys = append(keys, f.Param.Requires()...)
+		requiredKeys := f.Param.Requires().Required
+		optionalKeys := f.Param.Requires().Optional
+
+		rr.Required = append(rr.Required, requiredKeys...)
+		rr.Optional = append(rr.Optional, optionalKeys...)
 	}
-	return keys
+
+	return rr
 }
 
 func (ro parameterObject) Value(sp *Scope) (reflect.Value, error) {
