@@ -50,10 +50,14 @@ func (sp *Scope) Setup(function any, opts ...Option[*SetupOptions]) error {
 		}
 	}
 	for _, key := range funcPL.Requires().Optional {
+		if len(sp.dag.Provide(key)) == 0 {
+			continue
+		}
 		ids, err := dag.Resolve(sp.dag, key)
 		if err != nil {
-			// TODO handle *dag.MissingProviderError / CycleError
-			continue // skip
+			// TODO
+			// handle CycleError
+			return err
 		}
 		for _, id := range ids {
 			if !seen[id] {
