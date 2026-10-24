@@ -17,9 +17,11 @@ type Scope struct {
 
 	callFn callFn
 
+	dryRun                   bool
+	recoverFromPanics        bool
+	deferAcyclicVerification bool
+
 	// TODO
-	// recoverFromPanics        bool
-	// deferAcyclicVerification bool
 	// parentScope *Scope
 }
 
