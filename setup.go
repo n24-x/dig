@@ -5,8 +5,6 @@ import (
 	"reflect"
 
 	"github.com/n24-x/dig/internal/digreflect"
-
-	"github.com/n24-x/dag-go"
 )
 
 func (ct *Container) Setup(function any, opts ...Option[*SetupOptions]) error {
@@ -44,8 +42,7 @@ func (sp *Scope) Setup(function any, opts ...Option[*SetupOptions]) error {
 		return err
 	}
 
-	for _, id := range ctorOrder {
-		ctor := sp.dag.At(id).(*constructorNode)
+	for _, ctor := range ctorOrder {
 		if err := ctor.Run(sp); err != nil { // It may be PANIC
 			return err
 		}
@@ -70,7 +67,7 @@ func (sp *Scope) Setup(function any, opts ...Option[*SetupOptions]) error {
 // arguments can be assembled, in the order they have to run.
 //
 // See [ctorWalk] for how the order is computed.
-func (sp *Scope) ctorRunOrder(funcPL paramList) ([]dag.NodeID, error) {
+func (sp *Scope) ctorRunOrder(funcPL paramList) ([]*constructorNode, error) {
 	w := newCtorWalk(sp)
 
 	reqs := funcPL.Requires()

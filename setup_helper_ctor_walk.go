@@ -39,7 +39,11 @@ const (
 type ctorWalk struct {
 	sp    *Scope
 	state []nodeColor // indexed by NodeID; 0 is unused
-	order []dag.NodeID
+
+	// order holds the resolved nodes in run order, not their NodeIDs: the walk
+	// has to look each one up to reach its params anyway, so doing the cast here
+	// keeps callers from repeating it.
+	order []*constructorNode
 
 	// missing collects required keys that nobody provides, in the order they
 	// were first seen. seen keeps that list free of duplicates.
@@ -52,7 +56,7 @@ func newCtorWalk(sp *Scope) *ctorWalk {
 	return &ctorWalk{
 		sp:    sp,
 		state: make([]nodeColor, count+1),
-		order: make([]dag.NodeID, 0, count),
+		order: make([]*constructorNode, 0, count),
 		seen:  make(map[resourceType]struct{}),
 	}
 }
@@ -109,7 +113,7 @@ func (w *ctorWalk) visit(nodeID dag.NodeID) error {
 	}
 
 	w.state[nodeID] = _black
-	w.order = append(w.order, nodeID)
+	w.order = append(w.order, node)
 	return nil
 }
 
