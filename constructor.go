@@ -99,7 +99,12 @@ func (cn *constructorNode) ResultList() resultList     { return cn.resultList }
 func (cn *constructorNode) DotID() dot.ConstructorID   { return cn.dotID }
 func (cn *constructorNode) CType() reflect.Type        { return cn.ctype }
 
-func (cn *constructorNode) Run(sp *Scope) error {
+// Run builds the constructor's arguments, calls it, and commits the results to
+// sp. A constructor runs at most once: later calls are no-ops.
+//
+// err is named because the recover and callback paths (added here, below the
+// body) have to rewrite the value this call returns.
+func (cn *constructorNode) Run(sp *Scope) (err error) {
 	if cn.called {
 		return nil
 	}
@@ -111,7 +116,7 @@ func (cn *constructorNode) Run(sp *Scope) error {
 
 	staging := newStagingValues()
 	results := sp.fnCaller(reflect.ValueOf(cn.constructor), args)
-	if err := cn.resultList.ExtractList(staging, results); err != nil {
+	if err = cn.resultList.ExtractList(staging, results); err != nil {
 		return errConstructorFailed{
 			Func:   cn.location,
 			Reason: err,
