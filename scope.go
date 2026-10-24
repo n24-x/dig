@@ -1,6 +1,7 @@
 package dig
 
 import (
+	"math/rand/v2"
 	"reflect"
 
 	dag "github.com/n24-x/dag-go"
@@ -50,6 +51,31 @@ func (sp *Scope) lookupValue(typ resourceType) (reflect.Value, bool) {
 	// TODO walking up parentScope
 	v, ok := sp.values[typ]
 	return v, ok
+}
+
+// lookupGroup returns the values collected for the group key.
+//
+// The order is deliberately unstable: users must not depend on the order in
+// which the group's providers were registered, so the slice is shuffled every
+// time it is read. A copy is shuffled rather than the stored slice, otherwise
+// repeated reads would fight over the stored order and later submissions would
+// append to an already scrambled list.
+//
+// Multi-scope lookup (merging the ancestors' groups) belongs to the
+// scope-tree work; it will live inside this method so the signature does not
+// change.
+func (sp *Scope) lookupGroup(key resourceType) []reflect.Value {
+	// TODO walking up parentScope
+	return shuffledCopy(sp.valueGroups[key])
+}
+
+// shuffledCopy returns a shuffled copy of items, leaving items untouched.
+func shuffledCopy(items []reflect.Value) []reflect.Value {
+	out := make([]reflect.Value, len(items))
+	for i, j := range rand.Perm(len(items)) {
+		out[i] = items[j]
+	}
+	return out
 }
 
 // setValue overwrites the value stored for key.
