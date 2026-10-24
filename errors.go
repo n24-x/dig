@@ -1,6 +1,7 @@
 package dig
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"strings"
@@ -8,6 +9,18 @@ import (
 	"github.com/n24-x/dig/internal/digreflect"
 )
 
+// Error is the sealed interface every error returned by this package satisfies.
+//
+// Sealing works through the unexported writeMessage: callers can test for it
+// with errors.As to tell dig's own failures apart from errors raised by the
+// functions they registered.
+type Error interface {
+	error
+	writeMessage(w io.Writer, v string)
+}
+
+// digError is what formatError and errors.As work against internally: every
+// Error must also be a fmt.Formatter.
 type digError interface {
 	Error
 	fmt.Formatter
@@ -23,12 +36,33 @@ var (
 	_ digError = errConstructorFailed{}
 )
 
-var _ func(string, error) errInvalidInput = newErrInvalidInput
+var _ func(digError, fmt.State, rune) = formatError
 
-type Error interface {
-	error
-	writeMessage(w io.Writer, v string)
+func formatError(e digError, w fmt.State, v rune) {
+	multiline := w.Flag('+') && v == 'v'
+	verb := "%v"
+	if multiline {
+		verb = "%+v"
+	}
+
+	e.writeMessage(w, verb)
+
+	// Will route back to this function recursively if next error
+	// is also wrapped and points back here
+	wrappedError := errors.Unwrap(e)
+	if wrappedError == nil {
+		return
+	}
+	_, _ = io.WriteString(w, ":")
+	if multiline {
+		_, _ = io.WriteString(w, "\n")
+	} else {
+		_, _ = io.WriteString(w, " ")
+	}
+	_, _ = fmt.Fprintf(w, verb, wrappedError)
 }
+
+var _ func(string, error) errInvalidInput = newErrInvalidInput
 
 type PanicError struct {
 	//nolint:unused // TODO use
