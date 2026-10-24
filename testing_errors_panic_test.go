@@ -5,28 +5,28 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/n24-x/dig/internal/digreflect"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-
-	"github.com/n24-x/dig/internal/digreflect"
 )
 
 func TestPanicErrorFormatting(t *testing.T) {
 	t.Parallel()
 
 	fn := digreflect.InspectFunc(TestPanicErrorFormatting)
-	pe := PanicError{Func: fn, Panic: "boom"}
+	stringPanic := PanicError{Func: fn, Panic: "boom"}
 
 	t.Run("short", func(t *testing.T) {
 		assert.Equal(t,
 			fmt.Sprintf("panic: %q in func: %v", "boom", fn),
-			pe.Error())
+			stringPanic.Error())
 	})
 
 	t.Run("expanded", func(t *testing.T) {
-		got := fmt.Sprintf("%+v", pe)
+		got := fmt.Sprintf("%+v", stringPanic)
 		assert.Contains(t, got, `panic: "boom" in func: `)
-		assert.Contains(t, got, "errors_panic_test.go:") // file:line of this func
+		assert.Contains(t, got, "testing_errors_panic_test.go:") // file:line of this func
 	})
 
 	t.Run("non string panic", func(t *testing.T) {
