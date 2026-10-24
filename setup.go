@@ -59,6 +59,17 @@ func (sp *Scope) Setup(function any, opts ...Option[*SetupOptions]) (err error) 
 		return errArgumentsFailed{Func: digreflect.InspectFunc(function), Reason: err}
 	}
 
+	// Registered after the argument assembly so it covers only the user's own
+	// function: everything that could fail before this point reports an error
+	// instead of panicking.
+	if sp.recoverFromPanics {
+		defer func() {
+			if p := recover(); p != nil {
+				err = PanicError{Func: digreflect.InspectFunc(function), Panic: p}
+			}
+		}()
+	}
+
 	out := sp.fnCaller(fval, args)
 
 	err = findError(out)
