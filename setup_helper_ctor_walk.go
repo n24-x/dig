@@ -64,7 +64,8 @@ func (w *ctorWalk) visit(nodeID dag.NodeID) error {
 		return nil
 	case _gray: // reached again while still on the path
 		// This error only for developers, should never be encountered by users.
-		return fmt.Errorf("dig: internal error: circular dependency detected while ordering constructors at node")
+		return fmt.Errorf("dig: internal error: circular dependency detected while "+
+			"ordering constructors at node %d", nodeID)
 	case _white:
 		// Fresh node: fall through to the walk below.
 	}
