@@ -75,7 +75,7 @@ func (pm valueParam) Value(sp *Scope) (reflect.Value, error) {
 		return v, nil
 	}
 
-	if pm.Optional {
+	if pm.Optional && len(sp.dag.Provide(pm.key())) == 0 {
 		return reflect.Zero(pm.ValueType), nil
 	}
 
