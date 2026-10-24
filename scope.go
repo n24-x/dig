@@ -28,6 +28,7 @@ var _ func() *Scope = newScope
 
 var _ interface {
 	getValue(resourceType) (reflect.Value, bool)
+	Setup(function any, opts ...Option[*SetupOptions]) error
 } = (*Scope)(nil)
 
 var _ valueWriter = (*Scope)(nil)
