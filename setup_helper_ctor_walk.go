@@ -8,9 +8,9 @@ import (
 
 // Colours of a node during the walk.
 const (
-	nodeUnvisited = iota // zero value of ctorWalk.state
-	nodeVisiting         // on the current DFS path
-	nodeDone             // already emitted
+	_nodeUnvisited = iota // zero value of ctorWalk.state
+	_nodeVisiting         // on the current DFS path
+	_nodeDone             // already emitted
 )
 
 // ctorWalk computes the order in which constructors have to run, starting from
@@ -54,12 +54,12 @@ func newCtorWalk(sp *Scope) *ctorWalk {
 // visit emits id after everything it depends on.
 func (w *ctorWalk) visit(id dag.NodeID) error {
 	switch w.state[id] {
-	case nodeDone:
+	case _nodeDone:
 		return nil
-	case nodeVisiting:
+	case _nodeVisiting:
 		return fmt.Errorf("dig: cycle detected while ordering constructors at node %d", id)
 	}
-	w.state[id] = nodeVisiting
+	w.state[id] = _nodeVisiting
 
 	cn, ok := w.sp.dag.At(id).(*constructorNode)
 	if !ok {
@@ -97,7 +97,7 @@ func (w *ctorWalk) visit(id dag.NodeID) error {
 		}
 	}
 
-	w.state[id] = nodeDone
+	w.state[id] = _nodeDone
 	w.order = append(w.order, id)
 	return nil
 }
