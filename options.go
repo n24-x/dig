@@ -84,7 +84,7 @@ func (ro *resourceOptions) Validate() error {
 				fmt.Sprintf("invalid dig.As(*%v): argument must be a pointer to an interface", pointingTo), nil)
 		}
 
-		if isError(pointingTo) {
+		if isErrorType(pointingTo) {
 			return newErrInvalidInput("invalid dig.As(new(error)): cannot use error in As()", nil)
 		}
 

@@ -117,7 +117,7 @@ func newParameterObjectField(idx int, sf reflect.StructField) (parameterObjectFi
 			fmt.Sprintf("unexported fields not allowed in dig.Required, "+
 				"did you mean to export %q (%v)?", sf.Name, sf.Type), nil)
 
-	case isError(sf.Type):
+	case isErrorType(sf.Type):
 		return parameterObjectField{}, newErrInvalidInput("cannot handle error here, return it from"+
 			" the constructor instead", nil)
 

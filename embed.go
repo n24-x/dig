@@ -1,7 +1,5 @@
 package dig
 
-import "reflect"
-
 // Required may be embedded into structs to request dig to treat them as special
 // parameter structs. When a constructor accepts such a struct, instead of the
 // struct becoming a dependency for that constructor, all its fields become
@@ -31,16 +29,6 @@ type Provided struct{ _ digSentinel }
 // special nature obvious in godocs. Otherwise they will appear as
 // plain empty structs.
 type digSentinel struct{}
-
-var (
-	//nolint:unused // TODO use
-	_noValue         reflect.Value
-	_errType         = reflect.TypeFor[error]()
-	_requiredType    = reflect.TypeFor[Required]()
-	_requiredPtrType = reflect.TypeFor[*Required]()
-	_providedType    = reflect.TypeFor[Provided]()
-	_providedPtrType = reflect.TypeFor[*Provided]()
-)
 
 var (
 	_ func(any) bool = IsRequired

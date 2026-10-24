@@ -33,7 +33,7 @@ func newResult(typ reflect.Type, opts resultOptions) (result, error) {
 		return nil, newErrInvalidInput(fmt.Sprintf(
 			"expected return-struct, but got parameter-struct: %v embeds a dig.Required", typ), nil)
 
-	case isError(typ):
+	case isErrorType(typ):
 		return nil, newErrInvalidInput("cannot handle error here, return it from the constructor instead", nil)
 
 	case IsProvided(typ):

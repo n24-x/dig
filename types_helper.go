@@ -4,8 +4,34 @@ import (
 	"reflect"
 )
 
-func isError(t reflect.Type) bool {
-	return t.Implements(_errType)
+var (
+	_noValue         reflect.Value
+	_errType         = reflect.TypeFor[error]()
+	_requiredType    = reflect.TypeFor[Required]()
+	_requiredPtrType = reflect.TypeFor[*Required]()
+	_providedType    = reflect.TypeFor[Provided]()
+	_providedPtrType = reflect.TypeFor[*Provided]()
+)
+
+func isErrorType(t reflect.Type) bool {
+	return t != nil && t.Implements(_errType)
+}
+
+func isErrorValue(v reflect.Value) bool {
+	err, _ := reflect.TypeAssert[error](v)
+	if err != nil {
+		return true
+	}
+	return false
+}
+
+func findError(out []reflect.Value) error {
+	for _, o := range out {
+		if err, ok := reflect.TypeAssert[error](o); ok {
+			return err
+		}
+	}
+	return nil
 }
 
 // embedsType reports whether the type of value embeds target,
@@ -50,6 +76,6 @@ func embedsType(value any, target reflect.Type) bool {
 }
 
 var (
-	_ func(reflect.Type) bool      = isError
+	_ func(reflect.Type) bool      = isErrorType
 	_ func(any, reflect.Type) bool = embedsType
 )
