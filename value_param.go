@@ -7,11 +7,25 @@ import (
 	"github.com/n24-x/dig/internal/dot"
 )
 
+// param is one argument of a function, resolved against a scope.
 type param interface {
 	fmt.Stringer
 
+	// Requires reports the resources this param depends on, split by whether
+	// the graph has to guarantee them.
 	Requires() resourceRequirements
-	Value(*Scope) (reflect.Value, error) // TODO may change to BuildValue
+
+	// Value produces the value this param stands for, reading whatever the
+	// scope already holds.
+	//
+	// It does not execute constructors. By the time Value runs, everything a
+	// required param needs has been built, so a required param that finds
+	// nothing has hit an invariant violation (errValueNotFound) rather than a
+	// missing dependency. Optional params fall back to a zero value, groups
+	// assemble the items collected for them, and parameter structs build
+	// themselves field by field.
+	Value(*Scope) (reflect.Value, error)
+
 	DotParams() []*dot.Param
 }
 
