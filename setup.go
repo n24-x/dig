@@ -9,6 +9,10 @@ import (
 	"github.com/n24-x/dag-go"
 )
 
+func (ct *Container) Setup(function any, opts ...Option[*SetupOptions]) error {
+	return ct.rootScope.Setup(function, opts...)
+}
+
 func (sp *Scope) Setup(function any, opts ...Option[*SetupOptions]) error {
 	var options SetupOptions
 	for _, fn := range opts {
