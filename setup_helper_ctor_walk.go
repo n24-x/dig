@@ -13,18 +13,19 @@ import (
 type nodeColor uint8
 
 const (
-	_nodeUnvisited nodeColor = iota // the zero value: never visited
-	_nodeVisiting                   // on the current DFS path
-	_nodeDone                       // already emitted
+	_white nodeColor = iota // undiscovered: not visited yet
+	_gray                   // on the current DFS path
+	_black                  // fully processed and already emitted
 )
 
 // ctorWalk computes the order in which constructors have to run, starting from
 // a function's params.
 //
-// It walks the graph with a three-colour depth-first search. Required edges
-// come from the dag; optional edges are followed too, but only when somebody
-// provides the key, so an optional dep whose key nobody provides contributes no
-// node and the param keeps its zero value.
+// It walks the graph with a three-colour depth-first search: white nodes are
+// undiscovered, gray nodes sit on the current path, black nodes are done and
+// emitted. Required edges come from the dag; optional edges are followed too,
+// but only when somebody provides the key, so an optional dep whose key nobody
+// provides contributes no node and the param keeps its zero value.
 //
 // An optional edge is followed only when its provider can still run before the
 // consumer. If the provider's required closure leads back to the consumer, the
@@ -59,14 +60,14 @@ func newCtorWalk(sp *Scope) *ctorWalk {
 // visit emits id after everything it depends on.
 func (w *ctorWalk) visit(id dag.NodeID) error {
 	switch w.state[id] {
-	case _nodeDone: // already emitted, nothing to do
+	case _black: // already emitted, nothing to do
 		return nil
-	case _nodeVisiting: // reached again while still on the path
+	case _gray: // reached again while still on the path
 		return fmt.Errorf("dig: cycle detected while ordering constructors at node %d", id)
-	case _nodeUnvisited:
+	case _white:
 		// Fresh node: fall through to the walk below.
 	}
-	w.state[id] = _nodeVisiting
+	w.state[id] = _gray
 
 	cn, ok := w.sp.dag.At(id).(*constructorNode)
 	if !ok {
@@ -104,7 +105,7 @@ func (w *ctorWalk) visit(id dag.NodeID) error {
 		}
 	}
 
-	w.state[id] = _nodeDone
+	w.state[id] = _black
 	w.order = append(w.order, id)
 	return nil
 }
