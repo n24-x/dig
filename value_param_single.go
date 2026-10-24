@@ -71,7 +71,7 @@ func (pm valueParam) Requires() resourceRequirements {
 func (pm valueParam) Value(sp *Scope) (reflect.Value, error) {
 	// TODO decorated
 
-	if v, ok := sp.getValue(pm.key()); ok {
+	if v, ok := sp.lookupValue(pm.key()); ok {
 		return v, nil
 	}
 

@@ -27,7 +27,7 @@ type callFn func(fn reflect.Value, args []reflect.Value) (results []reflect.Valu
 var _ func() *Scope = newScope
 
 var _ interface {
-	getValue(resourceType) (reflect.Value, bool)
+	lookupValue(resourceType) (reflect.Value, bool)
 	Setup(function any, opts ...Option[*SetupOptions]) error
 } = (*Scope)(nil)
 
@@ -42,11 +42,11 @@ func newScope() *Scope {
 	}
 }
 
-// getValue returns the value built for t, if any.
+// lookupValue returns the value built for t, if any.
 //
 // Multi-scope lookup (walking up parentScope) belongs to the scope-tree work;
 // it will live inside this method so the signature does not change.
-func (sp *Scope) getValue(typ resourceType) (reflect.Value, bool) {
+func (sp *Scope) lookupValue(typ resourceType) (reflect.Value, bool) {
 	// TODO walking up parentScope
 	v, ok := sp.values[typ]
 	return v, ok
