@@ -6,11 +6,16 @@ import (
 	"github.com/n24-x/dag-go"
 )
 
-// Colours of a node during the walk.
+// nodeColor is a node's mark during the walk.
+//
+// It is a distinct type rather than a bare uint8 so that assigning anything
+// else to ctorWalk.state is a compile error.
+type nodeColor uint8
+
 const (
-	_nodeUnvisited = iota // zero value of ctorWalk.state
-	_nodeVisiting         // on the current DFS path
-	_nodeDone             // already emitted
+	_nodeUnvisited nodeColor = iota // the zero value: never visited
+	_nodeVisiting                   // on the current DFS path
+	_nodeDone                       // already emitted
 )
 
 // ctorWalk computes the order in which constructors have to run, starting from
@@ -32,7 +37,7 @@ const (
 // dependency precedes its consumer.
 type ctorWalk struct {
 	sp    *Scope
-	state []uint8 // indexed by NodeID; 0 is unused
+	state []nodeColor // indexed by NodeID; 0 is unused
 	order []dag.NodeID
 
 	// missing collects required keys that nobody provides, in the order they
@@ -45,7 +50,7 @@ func newCtorWalk(sp *Scope) *ctorWalk {
 	count := sp.dag.Count()
 	return &ctorWalk{
 		sp:    sp,
-		state: make([]uint8, count+1),
+		state: make([]nodeColor, count+1),
 		order: make([]dag.NodeID, 0, count),
 		seen:  make(map[resourceType]struct{}),
 	}
@@ -54,10 +59,12 @@ func newCtorWalk(sp *Scope) *ctorWalk {
 // visit emits id after everything it depends on.
 func (w *ctorWalk) visit(id dag.NodeID) error {
 	switch w.state[id] {
-	case _nodeDone:
+	case _nodeDone: // already emitted, nothing to do
 		return nil
-	case _nodeVisiting:
+	case _nodeVisiting: // reached again while still on the path
 		return fmt.Errorf("dig: cycle detected while ordering constructors at node %d", id)
+	case _nodeUnvisited:
+		// Fresh node: fall through to the walk below.
 	}
 	w.state[id] = _nodeVisiting
 
