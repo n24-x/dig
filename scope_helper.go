@@ -2,15 +2,15 @@ package dig
 
 import "reflect"
 
-var _ fnCaller = defaultCallFn
-var _ fnCaller = dryCallFn
+var _ fnCaller = defaultFnCaller
+var _ fnCaller = dryFnCaller
 
-func defaultCallFn(fn reflect.Value, args []reflect.Value) []reflect.Value {
+func defaultFnCaller(fn reflect.Value, args []reflect.Value) []reflect.Value {
 	return fn.Call(args)
 }
 
 // Generates zero values for results without calling the given function.
-func dryCallFn(fn reflect.Value, _ []reflect.Value) []reflect.Value {
+func dryFnCaller(fn reflect.Value, _ []reflect.Value) []reflect.Value {
 	ftype := fn.Type()
 	results := make([]reflect.Value, ftype.NumOut())
 	for i := 0; i < ftype.NumOut(); i++ {

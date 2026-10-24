@@ -45,7 +45,7 @@ func newScope() *Scope {
 		dag:         dag.New[resourceType](),
 		values:      make(map[resourceType]reflect.Value),
 		valueGroups: make(map[resourceType][]reflect.Value),
-		fnCaller:    defaultCallFn,
+		fnCaller:    defaultFnCaller,
 	}
 }
 
