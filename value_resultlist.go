@@ -55,7 +55,7 @@ func newResultList(ctype reflect.Type, opts resultOptions) (resultList, error) {
 	resultIndex := 0
 	for idx := range numReturnResults {
 		typ := ctype.Out(idx)
-		if isError(typ) {
+		if isErrorType(typ) {
 			resultIndexes[idx] = -1
 			continue // skip error
 		}

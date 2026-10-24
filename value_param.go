@@ -36,7 +36,7 @@ func newParam(typ reflect.Type) (param, error) {
 				"expected parameter-struct, but got return-struct: %v embeds a dig.Provided",
 				typ,
 			), nil)
-	case isError(typ):
+	case isErrorType(typ):
 		return nil, newErrInvalidInput("cannot handle error here, return it from the constructor instead", nil)
 
 	case embedsType(typ, _requiredPtrType):

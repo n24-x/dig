@@ -98,7 +98,7 @@ func newReturnObjectField(index int, sf reflect.StructField, opts resultOptions)
 ) {
 	var r result
 	switch {
-	case isError(sf.Type):
+	case isErrorType(sf.Type):
 		return returnObjectField{}, newErrInvalidInput("cannot handle error here, return it from"+
 			" the constructor instead", nil)
 	case sf.PkgPath != "":
