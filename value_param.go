@@ -10,9 +10,15 @@ import (
 type param interface {
 	fmt.Stringer
 
-	Requires() []resourceType
-	Value(*Scope) (reflect.Value, error)
+	Requires() resourceRequirements
+	Value(*Scope) (reflect.Value, error) // TODO may change to BuildValue
 	DotParams() []*dot.Param
+}
+
+type resourceRequirements struct {
+	Required []resourceType
+	Optional []resourceType
+	// TODO Passive []resource
 }
 
 var (

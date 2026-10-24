@@ -37,10 +37,23 @@ func (sp *Scope) Setup(function any, opts ...Option[*SetupOptions]) error {
 
 	var ctorOrder []dag.NodeID
 	seen := make(map[dag.NodeID]bool) // TODO go1.28 change to container/set
-	for _, key := range funcPL.Requires() {
+	for _, key := range funcPL.Requires().Required {
 		ids, err := dag.Resolve(sp.dag, key)
 		if err != nil {
 			return err // TODO handle *dag.MissingProviderError / CycleError
+		}
+		for _, id := range ids {
+			if !seen[id] {
+				seen[id] = true
+				ctorOrder = append(ctorOrder, id)
+			}
+		}
+	}
+	for _, key := range funcPL.Requires().Optional {
+		ids, err := dag.Resolve(sp.dag, key)
+		if err != nil {
+			// TODO handle *dag.MissingProviderError / CycleError
+			continue // skip
 		}
 		for _, id := range ids {
 			if !seen[id] {

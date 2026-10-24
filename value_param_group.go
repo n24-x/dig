@@ -36,11 +36,13 @@ func (pg valueParamGroup) String() string {
 // Passive groups are not reported: graph edges are "must build" edges, and a
 // passive group must not force its providers to run. It is populated with
 // whatever was built for another reason, falling back to an empty slice.
-func (pg valueParamGroup) Requires() []resourceType {
-	if pg.Passive {
-		return nil
+func (pg valueParamGroup) Requires() resourceRequirements {
+	var rr resourceRequirements
+	if pg.Passive { // TODO
+		return resourceRequirements{}
 	}
-	return []resourceType{pg.key()}
+	rr.Required = []resourceType{pg.key()}
+	return rr
 }
 
 func (pg valueParamGroup) Value(sp *Scope) (reflect.Value, error) {
