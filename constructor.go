@@ -106,14 +106,8 @@ func (cn *constructorNode) Run(sp *Scope) (err error) {
 		return nil
 	}
 
-	// Args has to be assembled up front: fnCaller takes the finished argument
-	// slice, so nothing can be resolved lazily at call time.
-	//
-	// It reads values the scope already holds and never executes a constructor
-	// (see param.Value); the dependencies were run by ctorRunOrder before this
-	// node was reached. A required key that is still missing is therefore an
-	// invariant violation, not a missing dependency, which is why its error is
-	// wrapped separately as errArgumentsFailed.
+	// The dependencies have already been built, so assembling the args now is
+	// just a read from the scope.
 	args, err := cn.paramList.Args(sp)
 	if err != nil {
 		return errArgumentsFailed{Func: cn.location, Reason: err}
