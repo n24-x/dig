@@ -30,13 +30,16 @@ type constructorNode struct {
 }
 
 var (
-	_ dag.Node[resourceType]                   = (*constructorNode)(nil)
-	_ interface{ Location() *digreflect.Func } = (*constructorNode)(nil)
-	_ interface{ ParamList() paramList }       = (*constructorNode)(nil)
-	_ interface{ ResultList() resultList }     = (*constructorNode)(nil)
-	_ interface{ DotID() dot.ConstructorID }   = (*constructorNode)(nil)
-	_ interface{ CType() reflect.Type }        = (*constructorNode)(nil)
-	_ interface{ Call(sp *Scope) error }       = (*constructorNode)(nil)
+	_ dag.Node[resourceType] = (*constructorNode)(nil)
+
+	_ interface {
+		Location() *digreflect.Func
+		ParamList() paramList
+		ResultList() resultList
+		DotID() dot.ConstructorID
+		CType() reflect.Type
+		Call(sp *Scope) error
+	} = (*constructorNode)(nil)
 )
 
 var _ func(any, constructorOptions) (*constructorNode, error) = newConstructorNode
