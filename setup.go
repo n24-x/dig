@@ -72,6 +72,21 @@ func (sp *Scope) Setup(function any, opts ...Option[*SetupOptions]) error {
 	return nil
 }
 
+var _ func(*SetupInfo) Option[*SetupOptions] = SetupReceipt
+
+// SetupReceipt writes [Setup] call func info.
+//
+// Unlike ResourceReceipt, the receipt is filled as soon as the function has
+// been parsed. Passing a nil info is a no-op.
+func SetupReceipt(info *SetupInfo) Option[*SetupOptions] {
+	return func(so *SetupOptions) {
+		if so == nil {
+			return
+		}
+		so.Info = info
+	}
+}
+
 type SetupOptions struct {
 	Info *SetupInfo
 }
