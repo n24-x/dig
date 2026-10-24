@@ -2,8 +2,8 @@ package dig
 
 import "reflect"
 
-var _ callFn = defaultCallFn
-var _ callFn = dryCallFn
+var _ fnCaller = defaultCallFn
+var _ fnCaller = dryCallFn
 
 func defaultCallFn(fn reflect.Value, args []reflect.Value) []reflect.Value {
 	return fn.Call(args)
