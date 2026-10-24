@@ -65,14 +65,11 @@ func formatError(e digError, w fmt.State, v rune) {
 var _ func(string, error) errInvalidInput = newErrInvalidInput
 
 type PanicError struct {
-	//nolint:unused // TODO use
-	fn    *digreflect.Func
+	Func  *digreflect.Func
 	Panic any
 }
 
 // errInvalidInput represents an error caused by invalid input.
-//
-// TODO maybe it need rename
 type errInvalidInput struct {
 	Message string
 	Cause   error
