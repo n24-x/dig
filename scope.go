@@ -19,6 +19,7 @@ type Scope struct {
 
 	recoverFromPanics        bool
 	deferAcyclicVerification bool
+	needsAcyclicCheck        bool
 
 	// TODO
 	// parentScope *Scope
