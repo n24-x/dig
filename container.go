@@ -18,3 +18,30 @@ func New(opts ...Option[*Container]) *Container {
 
 	return ct
 }
+
+func DryRun() Option[*Container] {
+	return func(ct *Container) {
+		if ct == nil {
+			return
+		}
+		ct.rootScope.dryRun = true
+	}
+}
+
+func RecoverFromPanics() Option[*Container] {
+	return func(ct *Container) {
+		if ct == nil {
+			return
+		}
+		ct.rootScope.recoverFromPanics = true
+	}
+}
+
+func DeferAcyclicVerification() Option[*Container] {
+	return func(ct *Container) {
+		if ct == nil {
+			return
+		}
+		ct.rootScope.deferAcyclicVerification = true
+	}
+}
