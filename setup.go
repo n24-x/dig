@@ -14,9 +14,6 @@ func (ct *Container) Setup(function any, opts ...Option[*SetupOptions]) error {
 // Setup runs function after building its dependencies: every constructor the
 // function's params reach is executed first, in dependency order, and the
 // resulting values are read out of the scope to form the call's arguments.
-//
-// err is named because the recover path (registered below) has to rewrite the
-// value this call returns.
 func (sp *Scope) Setup(function any, opts ...Option[*SetupOptions]) (err error) {
 	var options SetupOptions
 	for _, fn := range opts {
