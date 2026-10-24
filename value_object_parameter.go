@@ -36,18 +36,18 @@ type parameterObjectField struct {
 
 var _ func(int, reflect.StructField) (parameterObjectField, error) = newParameterObjectField
 
-func (ro parameterObject) String() string {
-	fields := make([]string, len(ro.Fields))
-	for i, f := range ro.Fields {
+func (po parameterObject) String() string {
+	fields := make([]string, len(po.Fields))
+	for i, f := range po.Fields {
 		fields[i] = f.Param.String()
 	}
 	return strings.Join(fields, " ")
 }
 
-func (ro parameterObject) Requires() resourceRequirements {
+func (po parameterObject) Requires() resourceRequirements {
 	var rr resourceRequirements
 
-	for _, f := range ro.Fields {
+	for _, f := range po.Fields {
 		requiredKeys := f.Param.Requires().Required
 		optionalKeys := f.Param.Requires().Optional
 
@@ -58,9 +58,9 @@ func (ro parameterObject) Requires() resourceRequirements {
 	return rr
 }
 
-func (ro parameterObject) Value(sp *Scope) (reflect.Value, error) {
-	dest := reflect.New(ro.Type).Elem()
-	for _, f := range ro.Fields {
+func (po parameterObject) Value(sp *Scope) (reflect.Value, error) {
+	dest := reflect.New(po.Type).Elem()
+	for _, f := range po.Fields {
 		v, err := f.Param.Value(sp)
 		if err != nil {
 			return reflect.Value{}, err
@@ -70,9 +70,9 @@ func (ro parameterObject) Value(sp *Scope) (reflect.Value, error) {
 	return dest, nil
 }
 
-func (ro parameterObject) DotParams() []*dot.Param {
+func (po parameterObject) DotParams() []*dot.Param {
 	var params []*dot.Param
-	for _, f := range ro.Fields {
+	for _, f := range po.Fields {
 		params = append(params, f.Param.DotParams()...)
 	}
 	return params
@@ -81,7 +81,7 @@ func (ro parameterObject) DotParams() []*dot.Param {
 // newParameterObject builds a parameterObject from the provided type.
 // The type MUST be a parameter struct.
 func newParameterObject(typ reflect.Type) (parameterObject, error) {
-	ro := parameterObject{Type: typ}
+	po := parameterObject{Type: typ}
 
 	var ignoreUnexported bool
 	for f := range typ.Fields() {
@@ -110,9 +110,9 @@ func newParameterObject(typ reflect.Type) (parameterObject, error) {
 			return parameterObject{}, newErrInvalidInput(
 				fmt.Sprintf("bad field %q of %v", f.Name, typ), err)
 		}
-		ro.Fields = append(ro.Fields, rof)
+		po.Fields = append(po.Fields, rof)
 	}
-	return ro, nil
+	return po, nil
 }
 
 func newParameterObjectField(idx int, sf reflect.StructField) (parameterObjectField, error) {
