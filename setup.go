@@ -65,7 +65,7 @@ func (sp *Scope) Setup(function any, opts ...Option[*SetupOptions]) error {
 
 	for _, id := range ctorOrder {
 		ctor := sp.dag.At(id).(*constructorNode)
-		if err := ctor.Call(sp); err != nil { // It may be PANIC
+		if err := ctor.Run(sp); err != nil { // It may be PANIC
 			return err
 		}
 	}
