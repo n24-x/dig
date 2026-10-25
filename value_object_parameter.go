@@ -12,34 +12,33 @@ import (
 //
 // This object is not expected in the graph as-is.
 type parameterObject struct {
-	Type        reflect.Type
-	Fields      []parameterObjectField
-	FieldOrders []int
+	typ    reflect.Type
+	fields []parameterObjectField
 }
 
 var _ func(reflect.Type) (parameterObject, error) = newParameterObject
 
 // parameterObjectField is a single field of a parameter struct.
 type parameterObjectField struct {
-	// Name of the field in the struct.
-	FieldName string
+	// fieldName is the name of the field in the struct.
+	fieldName string
 
-	// Index of this field in the target struct.
+	// fieldIndex is the index of this field in the target struct.
 	//
 	// We need to track this separately because not all fields of the
 	// struct map to params.
-	FieldIndex int
+	fieldIndex int
 
-	// The dependency requested by this field.
-	Param param
+	// param is the dependency requested by this field.
+	param param
 }
 
 var _ func(int, reflect.StructField) (parameterObjectField, error) = newParameterObjectField
 
 func (po parameterObject) String() string {
-	fields := make([]string, len(po.Fields))
-	for i, f := range po.Fields {
-		fields[i] = f.Param.String()
+	fields := make([]string, len(po.fields))
+	for i, f := range po.fields {
+		fields[i] = f.param.String()
 	}
 	return strings.Join(fields, " ")
 }
@@ -47,33 +46,33 @@ func (po parameterObject) String() string {
 func (po parameterObject) Requires() resourceRequirements {
 	var rr resourceRequirements
 
-	for _, f := range po.Fields {
-		requiredKeys := f.Param.Requires().Required
-		optionalKeys := f.Param.Requires().Optional
+	for _, f := range po.fields {
+		requiredKeys := f.param.Requires().required
+		optionalKeys := f.param.Requires().optional
 
-		rr.Required = append(rr.Required, requiredKeys...)
-		rr.Optional = append(rr.Optional, optionalKeys...)
+		rr.required = append(rr.required, requiredKeys...)
+		rr.optional = append(rr.optional, optionalKeys...)
 	}
 
 	return rr
 }
 
 func (po parameterObject) Value(sp *Scope) (reflect.Value, error) {
-	dest := reflect.New(po.Type).Elem()
-	for _, f := range po.Fields {
-		v, err := f.Param.Value(sp)
+	dest := reflect.New(po.typ).Elem()
+	for _, f := range po.fields {
+		v, err := f.param.Value(sp)
 		if err != nil {
 			return reflect.Value{}, err
 		}
-		dest.Field(f.FieldIndex).Set(v)
+		dest.Field(f.fieldIndex).Set(v)
 	}
 	return dest, nil
 }
 
 func (po parameterObject) DotParams() []*dot.Param {
 	var params []*dot.Param
-	for _, f := range po.Fields {
-		params = append(params, f.Param.DotParams()...)
+	for _, f := range po.fields {
+		params = append(params, f.param.DotParams()...)
 	}
 	return params
 }
@@ -81,7 +80,7 @@ func (po parameterObject) DotParams() []*dot.Param {
 // newParameterObject builds a parameterObject from the provided type.
 // The type MUST be a parameter struct.
 func newParameterObject(typ reflect.Type) (parameterObject, error) {
-	po := parameterObject{Type: typ}
+	po := parameterObject{typ: typ}
 
 	var ignoreUnexported bool
 	for f := range typ.Fields() {
@@ -110,7 +109,7 @@ func newParameterObject(typ reflect.Type) (parameterObject, error) {
 			return parameterObject{}, newErrInvalidInput(
 				fmt.Sprintf("bad field %q of %v", f.Name, typ), err)
 		}
-		po.Fields = append(po.Fields, rof)
+		po.fields = append(po.fields, rof)
 	}
 	return po, nil
 }
@@ -143,10 +142,10 @@ func newParameterObjectField(idx int, sf reflect.StructField) (parameterObjectFi
 	}
 
 	if ps, ok := p.(valueParam); ok {
-		ps.ValueName = sf.Tag.Get(_nameTag)
+		ps.valueName = sf.Tag.Get(_nameTag)
 
 		var err error
-		ps.Optional, err = isFieldOptional(sf)
+		ps.optional, err = isFieldOptional(sf)
 		if err != nil {
 			return parameterObjectField{}, err
 		}
@@ -155,8 +154,8 @@ func newParameterObjectField(idx int, sf reflect.StructField) (parameterObjectFi
 	}
 
 	return parameterObjectField{
-		FieldName:  sf.Name,
-		FieldIndex: idx,
-		Param:      p,
+		fieldName:  sf.Name,
+		fieldIndex: idx,
+		param:      p,
 	}, nil
 }

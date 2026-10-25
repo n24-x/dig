@@ -10,10 +10,10 @@ import (
 // valueResult is an explicit value produced by a constructor, optionally
 // with a name and/or extra As types.
 type valueResult struct {
-	ValueName string
-	ValueType reflect.Type
+	valueName string
+	valueType reflect.Type
 
-	As []reflect.Type
+	asTypes []reflect.Type
 }
 
 var _ func(reflect.Type, resultOptions) (valueResult, error) = newValueResult
@@ -22,10 +22,10 @@ func (r valueResult) Provides() []resourceType {
 	keys := []resourceType{
 		r.key(),
 	}
-	for _, typ := range r.As {
+	for _, typ := range r.asTypes {
 		keys = append(keys, resourceType{
 			valueType: typ,
-			valueName: r.ValueName,
+			valueName: r.valueName,
 		})
 	}
 	return keys
@@ -41,17 +41,17 @@ func (r valueResult) DotResults() []*dot.Result {
 	dotResults := []*dot.Result{
 		{
 			Node: &dot.Node{
-				ValueType: r.ValueType,
-				ValueName: r.ValueName,
+				ValueType: r.valueType,
+				ValueName: r.valueName,
 			},
 		},
 	}
-	if len(r.As) > 0 {
-		for _, typ := range r.As {
+	if len(r.asTypes) > 0 {
+		for _, typ := range r.asTypes {
 			dotResults = append(dotResults, &dot.Result{
 				Node: &dot.Node{
 					ValueType: typ,
-					ValueName: r.ValueName,
+					ValueName: r.valueName,
 				},
 			})
 		}
@@ -61,12 +61,12 @@ func (r valueResult) DotResults() []*dot.Result {
 
 func newValueResult(typ reflect.Type, opts resultOptions) (valueResult, error) {
 	r := valueResult{
-		ValueType: typ,
-		ValueName: opts.ValueName,
+		valueType: typ,
+		valueName: opts.valueName,
 	}
 
 	var asTypes []reflect.Type
-	for _, as := range opts.As {
+	for _, as := range opts.asTypes {
 		ifaceType := reflect.TypeOf(as).Elem() // as is validated
 		if ifaceType == typ {
 			// Special case:
@@ -87,15 +87,15 @@ func newValueResult(typ reflect.Type, opts resultOptions) (valueResult, error) {
 	}
 
 	return valueResult{
-		ValueType: asTypes[0],
-		ValueName: opts.ValueName,
-		As:        asTypes[1:],
+		valueType: asTypes[0],
+		valueName: opts.valueName,
+		asTypes:   asTypes[1:],
 	}, nil
 }
 
 func (r valueResult) key() resourceType {
 	return resourceType{
-		valueType: r.ValueType,
-		valueName: r.ValueName,
+		valueType: r.valueType,
+		valueName: r.valueName,
 	}
 }

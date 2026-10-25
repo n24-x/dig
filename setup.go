@@ -99,7 +99,7 @@ func (sp *Scope) ctorRunOrder(funcPL paramList) ([]*constructorNode, error) {
 	w := newCtorWalk(sp)
 
 	reqs := funcPL.Requires()
-	for _, key := range reqs.Required {
+	for _, key := range reqs.required {
 		providers := sp.dag.Provide(key)
 		if len(providers) == 0 {
 			w.addMissing(key)
@@ -111,7 +111,7 @@ func (sp *Scope) ctorRunOrder(funcPL paramList) ([]*constructorNode, error) {
 			}
 		}
 	}
-	for _, key := range reqs.Optional {
+	for _, key := range reqs.optional {
 		for _, id := range sp.dag.Provide(key) { // nobody provides it => no node => skip
 			if err := w.visit(id); err != nil {
 				return nil, err

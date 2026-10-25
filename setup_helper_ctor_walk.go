@@ -98,7 +98,7 @@ func (w *ctorWalk) visit(nodeID dag.NodeID) error {
 	// If the provider would need this node to have run first, the two cannot
 	// both be satisfied; report it rather than silently handing the consumer a
 	// zero value.
-	for _, key := range node.ParamList().Requires().Optional {
+	for _, key := range node.ParamList().Requires().optional {
 		for _, depNodeID := range w.sp.dag.Provide(key) {
 			if w.sp.requiredReaches(depNodeID, nodeID) {
 				return fmt.Errorf(

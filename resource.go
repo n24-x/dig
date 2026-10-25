@@ -12,17 +12,17 @@ import (
 )
 
 var (
-	_ func(*Container, any, ...Option[*resourceOptions]) error = (*Container).Resource
-	_ func(*Scope, any, ...Option[*resourceOptions]) error     = (*Scope).Resource
-	_ func(*Scope, any, resourceOptions) error                 = (*Scope).resource
+	_ func(*Container, any, ...Option[*ResourceOptions]) error = (*Container).Resource
+	_ func(*Scope, any, ...Option[*ResourceOptions]) error     = (*Scope).Resource
+	_ func(*Scope, any, ResourceOptions) error                 = (*Scope).resource
 	_ func(*Scope, []resourceType) string                      = (*Scope).checkResource
 )
 
-func (ct *Container) Resource(ctor any, opts ...Option[*resourceOptions]) error {
+func (ct *Container) Resource(ctor any, opts ...Option[*ResourceOptions]) error {
 	return ct.rootScope.Resource(ctor, opts...)
 }
 
-func (sp *Scope) Resource(ctor any, opts ...Option[*resourceOptions]) error {
+func (sp *Scope) Resource(ctor any, opts ...Option[*ResourceOptions]) error {
 	ctype := reflect.TypeOf(ctor)
 	if ctype == nil {
 		return newErrInvalidInput("dig: nil cannot provide resource", nil)
@@ -34,7 +34,7 @@ func (sp *Scope) Resource(ctor any, opts ...Option[*resourceOptions]) error {
 				ctor, ctype), nil)
 	}
 
-	var options resourceOptions
+	var options ResourceOptions
 	for _, fn := range opts {
 		fn(&options)
 	}
@@ -44,10 +44,10 @@ func (sp *Scope) Resource(ctor any, opts ...Option[*resourceOptions]) error {
 
 	if err := sp.resource(ctor, options); err != nil {
 		var badFunc *digreflect.Func
-		if options.Location == nil {
+		if options.location == nil {
 			badFunc = digreflect.InspectFunc(ctor)
 		} else {
-			badFunc = options.Location
+			badFunc = options.location
 		}
 
 		return errResourceAddFailed{
@@ -58,20 +58,20 @@ func (sp *Scope) Resource(ctor any, opts ...Option[*resourceOptions]) error {
 	return nil
 }
 
-func (sp *Scope) resource(ctor any, options resourceOptions) error {
-	node, err := newConstructorNode(ctor, constructorOptions{
-		Result: resultOptions{
-			ValueName: options.ValueName,
-			GroupName: options.GroupName,
-			As:        options.As,
+func (sp *Scope) resource(ctor any, options ResourceOptions) error {
+	node, err := newConstructorNode(ctor, ConstructorOptions{
+		result: resultOptions{
+			valueName: options.valueName,
+			groupName: options.groupName,
+			asTypes:   options.asTypes,
 		},
-		Location: options.Location,
+		location: options.location,
 	})
 	if err != nil {
 		return err
 	}
 
-	node.observer = options.Observer
+	node.observer = options.observer
 
 	if reason := sp.checkResource(node.Provides()); reason != "" {
 		return newErrInvalidInput(reason, nil)
@@ -82,7 +82,7 @@ func (sp *Scope) resource(ctor any, options resourceOptions) error {
 		return err
 	}
 
-	if info := options.Info; info != nil {
+	if info := options.info; info != nil {
 		info.DagID = DagID(id)
 		info.Params = paramInfos(node.ParamList().DotParams())
 		info.Results = resultInfos(node.ResultList().DotResults())
@@ -146,23 +146,23 @@ func (sp *Scope) checkResource(rs []resourceType) string {
 }
 
 var (
-	_ func(string) Option[*resourceOptions]               = Name
-	_ func(string) Option[*resourceOptions]               = Group
-	_ func(uintptr) Option[*resourceOptions]              = LocationForPC
-	_ func(...any) Option[*resourceOptions]               = As
-	_ func(*ResourceReceiptInfo) Option[*resourceOptions] = ResourceReceipt
+	_ func(string) Option[*ResourceOptions]               = Name
+	_ func(string) Option[*ResourceOptions]               = Group
+	_ func(uintptr) Option[*ResourceOptions]              = LocationForPC
+	_ func(...any) Option[*ResourceOptions]               = As
+	_ func(*ResourceReceiptInfo) Option[*ResourceOptions] = ResourceReceipt
 )
 
 // Name sets the name of the provided value.
 //
 // TODO cleanup
 // Validation is performed once by [Validate] rather than here.
-func Name(name string) Option[*resourceOptions] {
-	return func(ro *resourceOptions) {
+func Name(name string) Option[*ResourceOptions] {
+	return func(ro *ResourceOptions) {
 		if ro == nil {
 			return
 		}
-		ro.ValueName = name
+		ro.valueName = name
 	}
 }
 
@@ -170,23 +170,23 @@ func Name(name string) Option[*resourceOptions] {
 //
 // TODO cleanup
 // Validation is performed once by [Validate] rather than here.
-func Group(groupName string) Option[*resourceOptions] {
-	return func(ro *resourceOptions) {
+func Group(groupName string) Option[*ResourceOptions] {
+	return func(ro *ResourceOptions) {
 		if ro == nil {
 			return
 		}
-		ro.GroupName = groupName
+		ro.groupName = groupName
 	}
 }
 
 // LocationForPC records the call site that constructed this option. It is used
 // to attribute errors to user code instead of to this package.
-func LocationForPC(pc uintptr) Option[*resourceOptions] {
-	return func(ro *resourceOptions) {
+func LocationForPC(pc uintptr) Option[*ResourceOptions] {
+	return func(ro *ResourceOptions) {
 		if ro == nil {
 			return
 		}
-		ro.Location = digreflect.InspectFuncPC(pc)
+		ro.location = digreflect.InspectFuncPC(pc)
 	}
 }
 
@@ -194,12 +194,12 @@ func LocationForPC(pc uintptr) Option[*resourceOptions] {
 // its own type. Each argument must be a pointer to an interface that the value
 // implements; because the argument is untyped, this cannot be checked by the
 // compiler and is validated by [Validate] and at parse time instead.
-func As(types ...any) Option[*resourceOptions] {
-	return func(ro *resourceOptions) {
+func As(types ...any) Option[*ResourceOptions] {
+	return func(ro *ResourceOptions) {
 		if ro == nil {
 			return
 		}
-		ro.As = append(ro.As, types...)
+		ro.asTypes = append(ro.asTypes, types...)
 	}
 }
 
@@ -207,12 +207,12 @@ func As(types ...any) Option[*resourceOptions] {
 //
 // The receipt is filled only after the resource has been registered
 // successfully. Passing a nil info is a no-op.
-func ResourceReceipt(info *ResourceReceiptInfo) Option[*resourceOptions] {
-	return func(ro *resourceOptions) {
+func ResourceReceipt(info *ResourceReceiptInfo) Option[*ResourceOptions] {
+	return func(ro *ResourceOptions) {
 		if ro == nil {
 			return
 		}
-		ro.Info = info
+		ro.info = info
 	}
 }
 
