@@ -2,6 +2,7 @@ package digreflect
 
 import (
 	"fmt"
+	"io"
 	"reflect"
 	"runtime"
 )
@@ -29,6 +30,12 @@ func (f *Func) String() string {
 	return fmt.Sprint(f)
 }
 
+// Dotted returns the package-qualified function name, <package>.<function>,
+// with no quoting and no position. It is what the %s verb prints.
+func (f *Func) Dotted() string {
+	return f.Package + "." + f.Name
+}
+
 // Format implements fmt.Formatter for Func, so a function can be rendered in
 // three ways:
 //
@@ -38,7 +45,7 @@ func (f *Func) String() string {
 func (f *Func) Format(w fmt.State, c rune) {
 	if c == 's' {
 		// package.name
-		_, _ = fmt.Fprintf(w, "%s.%s", f.Package, f.Name)
+		_, _ = io.WriteString(w, f.Dotted())
 	} else if w.Flag('+') && c == 'v' {
 		// "path/to/package".MyFunction
 		// 	path/to/file.go:42
