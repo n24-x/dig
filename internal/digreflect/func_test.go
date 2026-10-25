@@ -152,8 +152,28 @@ func TestFuncFormatting(t *testing.T) {
 
 	assert.Equal(t,
 		`foo/bar/baz.Qux`,
+		f.Dotted(), "Dotted() did not match")
+
+	// %s and Dotted must produce the same string: observers read the value
+	// handed to them, while error messages format the same Func with %s.
+	assert.Equal(t,
+		f.Dotted(),
 		fmt.Sprintf("%s", &f), "%s did not match")
 
 	assert.Equal(t, `"foo/bar/baz".Qux
 	src/foo/bar/baz/qux.go:42`, fmt.Sprintf("%+v", &f), "%+v did not match")
+}
+
+// TestDotted checks Dotted against a real function, since TestFuncFormatting
+// builds a Func by hand and never exercises InspectFunc's Package/Name split.
+func TestDotted(t *testing.T) {
+	t.Parallel()
+
+	f := InspectFunc(TestDotted)
+
+	got := f.Dotted()
+	assert.Equal(t, f.Package+"."+f.Name, got)
+	assert.NotEmpty(t, got)
+	assert.NotEqual(t, '.', got[0], "must be package-qualified")
+	assert.Equal(t, fmt.Sprintf("%s", f), got, "%s must match Dotted()")
 }
