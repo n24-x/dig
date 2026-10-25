@@ -3,6 +3,7 @@ package dig
 import (
 	"fmt"
 	"reflect"
+	"time"
 
 	"github.com/n24-x/dig/internal/digreflect"
 	"github.com/n24-x/dig/internal/dot"
@@ -25,8 +26,7 @@ type constructorNode struct {
 
 	called bool
 
-	// TODO
-	// callback/beforeCallback
+	observer Observer
 }
 
 var (
@@ -111,6 +111,23 @@ func (cn *constructorNode) Run(sp *Scope) (err error) {
 	args, err := cn.paramList.Args(sp)
 	if err != nil {
 		return errArgumentsFailed{Func: cn.location, Reason: err}
+	}
+
+	ob := cn.observer
+	obName := cn.location.Dotted()
+	if ob.Announce != nil {
+		ob.Announce(obName)
+	}
+
+	start := time.Now()
+	if ob.Report != nil {
+		defer func() {
+			ob.Report(ObserveInfo{
+				Name:        obName,
+				Error:       err,
+				ElapsedTime: time.Since(start),
+			})
+		}()
 	}
 
 	// Registered after Args so it only covers the call itself, and last of the
