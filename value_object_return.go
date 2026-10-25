@@ -67,10 +67,6 @@ func newReturnObject(typ reflect.Type, opts resultOptions) (returnObject, error)
 		return returnObject{}, newErrInvalidInput(fmt.Sprintf(
 			"cannot use dig.Group with return-struct: %v embeds dig.Provided", typ), nil)
 	}
-	if len(opts.asTypes) > 0 {
-		return returnObject{}, newErrInvalidInput(fmt.Sprintf(
-			"cannot use dig.As with return-struct: %v embeds dig.Provided", typ), nil)
-	}
 
 	for i := range typ.NumField() {
 		f := typ.Field(i)
