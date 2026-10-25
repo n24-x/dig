@@ -71,6 +71,8 @@ func (sp *Scope) resource(ctor any, options resourceOptions) error {
 		return err
 	}
 
+	node.observer = options.Observer
+
 	if reason := sp.checkResource(node.Provides()); reason != "" {
 		return newErrInvalidInput(reason, nil)
 	}

@@ -14,10 +14,6 @@ type Option[T any] func(T)
 type constructorOptions struct {
 	Result   resultOptions
 	Location *digreflect.Func
-
-	// TODO
-	// Callback
-	// BeforeCallback
 }
 
 // resultOptions carries the settings that shape a parsed result.
@@ -38,6 +34,7 @@ type resourceOptions struct {
 	As        []any
 	Location  *digreflect.Func
 	Info      *ResourceReceiptInfo
+	Observer  Observer
 }
 
 var _ interface{ Validate() error } = (*resourceOptions)(nil)
