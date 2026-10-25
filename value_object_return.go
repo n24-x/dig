@@ -8,69 +8,66 @@ import (
 )
 
 type returnObject struct {
-	Type   reflect.Type
-	Fields []returnObjectField
+	fields []returnObjectField
 }
 
 var _ func(reflect.Type, resultOptions) (returnObject, error) = newReturnObject
 
 type returnObjectField struct {
-	// Name of the field in the struct.
-	FieldName string
+	// fieldName is the name of the field in the struct.
+	fieldName string
 
-	// Index of the field in the struct.
+	// fieldIndex is the index of the field in the struct.
 	//
 	// We need to track this separately because not all fields of the struct
 	// map to results.
-	FieldIndex int
+	fieldIndex int
 
-	// Result produced by this field.
-	Result result
+	// result is what this field produces.
+	result result
 }
 
 var _ func(int, reflect.StructField, resultOptions) (returnObjectField, error) = newReturnObjectField
 
 func (ro returnObject) Provides() []resourceType {
-	if len(ro.Fields) == 0 {
+	if len(ro.fields) == 0 {
 		return []resourceType{}
 	}
 
 	var keys []resourceType
-	for _, f := range ro.Fields {
-		keys = append(keys, f.Result.Provides()...)
+	for _, f := range ro.fields {
+		keys = append(keys, f.result.Provides()...)
 	}
 
 	return keys
 }
 
 func (ro returnObject) Extract(w valueWriter, v reflect.Value) {
-	for _, f := range ro.Fields {
-		f.Result.Extract(w, v.Field(f.FieldIndex))
+	for _, f := range ro.fields {
+		f.result.Extract(w, v.Field(f.fieldIndex))
 	}
 }
 
 func (ro returnObject) DotResults() []*dot.Result {
 	var dotResults []*dot.Result
-	for _, f := range ro.Fields {
-		dotResults = append(dotResults, f.Result.DotResults()...)
+	for _, f := range ro.fields {
+		dotResults = append(dotResults, f.result.DotResults()...)
 	}
 	return dotResults
 }
 
 func newReturnObject(typ reflect.Type, opts resultOptions) (returnObject, error) {
-	po := returnObject{
-		Type: typ,
-	}
+	var ro returnObject
 
-	if opts.ValueName != "" {
+	if opts.valueName != "" {
 		return returnObject{}, newErrInvalidInput(fmt.Sprintf(
 			"cannot use dig.Name with return-struct: %v embeds dig.Provided", typ), nil)
 	}
-	if opts.GroupName != "" {
+	if opts.groupName != "" {
 		return returnObject{}, newErrInvalidInput(fmt.Sprintf(
 			"cannot use dig.Group with return-struct: %v embeds dig.Provided", typ), nil)
 	}
-	if len(opts.As) > 0 {
+	if len(opts.asTypes) > 0 {
 		return returnObject{}, newErrInvalidInput(fmt.Sprintf(
 			"cannot use dig.As with return-struct: %v embeds dig.Provided", typ), nil)
 	}
@@ -81,15 +78,15 @@ func newReturnObject(typ reflect.Type, opts resultOptions) (returnObject, error)
 			continue // skip dig.Provided
 		}
 
-		pof, err := newReturnObjectField(i, f, opts)
+		rof, err := newReturnObjectField(i, f, opts)
 		if err != nil {
 			return returnObject{}, newErrInvalidInput(
 				fmt.Sprintf("bad field %q of %v", f.Name, typ), err)
 		}
 
-		po.Fields = append(po.Fields, pof)
+		ro.fields = append(ro.fields, rof)
 	}
-	return po, nil
+	return ro, nil
 }
 
 func newReturnObjectField(index int, sf reflect.StructField, opts resultOptions) (
@@ -125,7 +122,7 @@ func newReturnObjectField(index int, sf reflect.StructField, opts resultOptions)
 		var err error
 		if name := sf.Tag.Get(_nameTag); name != "" {
 			// can modify in-place because options are passed-by-value.
-			opts.ValueName = name
+			opts.valueName = name
 		}
 		r, err = newResult(sf.Type, opts)
 		if err != nil {
@@ -134,8 +131,8 @@ func newReturnObjectField(index int, sf reflect.StructField, opts resultOptions)
 	}
 
 	return returnObjectField{
-		FieldName:  sf.Name,
-		FieldIndex: index,
-		Result:     r,
+		fieldName:  sf.Name,
+		fieldIndex: index,
+		result:     r,
 	}, nil
 }

@@ -10,23 +10,23 @@ import (
 // valueParamGroup is a param which produces a slice of values with the same
 // group name.
 type valueParamGroup struct {
-	// Name of the group as specified in the `group:".."` tag.
-	GroupName string
+	// groupName is the name of the group as specified in the `group:".."` tag.
+	groupName string
 
-	// ValueType of the slice.
-	ValueType reflect.Type
+	// valueType of the slice.
+	valueType reflect.Type
 
-	// Passive is used to denote a passive dependency between this param and its
+	// passive is used to denote a passive dependency between this param and its
 	// constructors: if true, its constructors are only called if they provide
 	// another value requested in the graph
-	Passive bool
+	passive bool
 }
 
 var _ func(reflect.StructField) (valueParamGroup, error) = newValueParamGroup
 
 func (pg valueParamGroup) String() string {
 	// io.Reader[group="foo"] refers to a group of io.Readers called 'foo'
-	return fmt.Sprintf("%v[group=%q]", pg.ValueType.Elem(), pg.GroupName)
+	return fmt.Sprintf("%v[group=%q]", pg.valueType.Elem(), pg.groupName)
 }
 
 // Requires reports the resources this param depends on: the group itself,
@@ -38,16 +38,16 @@ func (pg valueParamGroup) String() string {
 // whatever was built for another reason, falling back to an empty slice.
 func (pg valueParamGroup) Requires() resourceRequirements {
 	var rr resourceRequirements
-	if pg.Passive { // TODO
+	if pg.passive { // TODO
 		return resourceRequirements{}
 	}
-	rr.Required = []resourceType{pg.key()}
+	rr.required = []resourceType{pg.key()}
 	return rr
 }
 
 func (pg valueParamGroup) Value(sp *Scope) (reflect.Value, error) {
 	items := sp.lookupGroup(pg.key())
-	out := reflect.MakeSlice(pg.ValueType, 0, len(items))
+	out := reflect.MakeSlice(pg.valueType, 0, len(items))
 	for _, item := range items {
 		out = reflect.Append(out, item)
 	}
@@ -58,8 +58,8 @@ func (pg valueParamGroup) DotParams() []*dot.Param {
 	return []*dot.Param{
 		{
 			Node: &dot.Node{
-				ValueType: pg.ValueType,
-				GroupName: pg.GroupName,
+				ValueType: pg.valueType,
+				GroupName: pg.groupName,
 			},
 		},
 	}
@@ -81,28 +81,28 @@ func newValueParamGroup(sf reflect.StructField) (valueParamGroup, error) {
 				sf.Name,
 				sf.Type,
 			), nil)
-	case g.Flatten:
+	case g.flatten:
 		return valueParamGroup{}, newErrInvalidInput(
 			fmt.Sprintf("cannot use group-tag with flatten in parameter-struct: "+
 				"field %q (%v) specifies flatten", sf.Name, sf.Type), nil)
 	case nameTag != "":
 		return valueParamGroup{}, newErrInvalidInput(
 			fmt.Sprintf("cannot use name-tag with group-tag: "+
-				"name-tag %q used with group-tag %q", nameTag, g.Name), nil)
+				"name-tag %q used with group-tag %q", nameTag, g.name), nil)
 	case optionalTag:
 		return valueParamGroup{}, newErrInvalidInput("cannot use optional-tag with group-tag", nil)
 	}
 
 	return valueParamGroup{
-		GroupName: g.Name,
-		ValueType: sf.Type,
-		Passive:   g.Passive,
+		groupName: g.name,
+		valueType: sf.Type,
+		passive:   g.passive,
 	}, nil
 }
 
 func (pg valueParamGroup) key() resourceType {
 	return resourceType{
-		valueType: pg.ValueType.Elem(), // group value type
-		groupName: pg.GroupName,
+		valueType: pg.valueType.Elem(), // group value type
+		groupName: pg.groupName,
 	}
 }

@@ -11,10 +11,10 @@ import (
 type resultList struct {
 	ctype reflect.Type
 
-	Results []result
+	results []result
 
 	// For each item at index i returned by the constructor, resultIndexes[i]
-	// is the index in .Results for the corresponding result object.
+	// is the index in .results for the corresponding result object.
 	// resultIndexes[i] is -1 for errors returned by constructors.
 	resultIndexes []int
 }
@@ -29,10 +29,10 @@ var _ func(reflect.Type, resultOptions) (resultList, error) = newResultList
 // Provides returns the resourceTypes produced by the constructor.
 //
 // By the time Provides is called, error returns have already been removed
-// from Results (see newResultList), so there is no need to skip anything here.
+// from results (see newResultList), so there is no need to skip anything here.
 func (rl resultList) Provides() []resourceType {
 	var keys []resourceType
-	for _, r := range rl.Results {
+	for _, r := range rl.results {
 		keys = append(keys, r.Provides()...)
 	}
 
@@ -41,7 +41,7 @@ func (rl resultList) Provides() []resourceType {
 
 func (rl resultList) DotResults() []*dot.Result {
 	var dotResults []*dot.Result
-	for _, r := range rl.Results {
+	for _, r := range rl.results {
 		dotResults = append(dotResults, r.DotResults()...)
 	}
 	return dotResults
@@ -72,7 +72,7 @@ func newResultList(ctype reflect.Type, opts resultOptions) (resultList, error) {
 
 	return resultList{
 		ctype:         ctype,
-		Results:       results,
+		results:       results,
 		resultIndexes: resultIndexes,
 	}, nil
 }
@@ -80,7 +80,7 @@ func newResultList(ctype reflect.Type, opts resultOptions) (resultList, error) {
 func (rl resultList) ExtractList(w valueWriter, values []reflect.Value) error {
 	for i, v := range values {
 		if idx := rl.resultIndexes[i]; idx >= 0 {
-			rl.Results[idx].Extract(w, v)
+			rl.results[idx].Extract(w, v)
 			continue
 		}
 

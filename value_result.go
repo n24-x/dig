@@ -49,16 +49,16 @@ func newResult(typ reflect.Type, opts resultOptions) (result, error) {
 			"cannot use pointer as return-struct, use a value instead:"+
 				" %v is a pointer to a struct that embeds dig.Provided", typ), nil)
 
-	case opts.GroupName != "":
-		g, err := parseGroupString(opts.GroupName)
+	case opts.groupName != "":
+		g, err := parseGroupString(opts.groupName)
 		if err != nil {
 			return nil, newErrInvalidInput(
-				fmt.Sprintf("cannot parse group-tag value %q", opts.GroupName), err)
+				fmt.Sprintf("cannot parse group-tag value %q", opts.groupName), err)
 		}
-		rg := valueResultGroup{ValueType: typ, GroupName: g.Name, Flatten: g.Flatten}
-		if len(opts.As) > 0 {
+		rg := valueResultGroup{valueType: typ, groupName: g.name, flatten: g.flatten}
+		if len(opts.asTypes) > 0 {
 			var asTypes []reflect.Type
-			for _, as := range opts.As {
+			for _, as := range opts.asTypes {
 				ifaceType := reflect.TypeOf(as).Elem() // TODO validate nil
 				if ifaceType == typ {
 					continue // ignore
@@ -70,26 +70,26 @@ func newResult(typ reflect.Type, opts resultOptions) (result, error) {
 				asTypes = append(asTypes, ifaceType)
 			}
 			if len(asTypes) > 0 {
-				rg.ValueType = asTypes[0]
-				rg.As = asTypes[1:]
+				rg.valueType = asTypes[0]
+				rg.asTypes = asTypes[1:]
 			}
 		}
-		if g.Passive {
+		if g.passive {
 			return nil, newErrInvalidInput(fmt.Sprintf(
 				"cannot use group-tag with passive in return-struct:"+
-					" passive was incorrectly used in group %q", g.Name), nil)
+					" passive was incorrectly used in group %q", g.name), nil)
 		}
-		if g.Flatten {
+		if g.flatten {
 			if typ.Kind() != reflect.Slice {
 				return nil, newErrInvalidInput(fmt.Sprintf(
 					"in return-struct, only slice field can use group-tag with flatten:"+
 						" %v is not a slice", typ), nil)
 			}
-			// TODO: when As was given, rg.ValueType is already the interface
+			// TODO: when As was given, rg.valueType is already the interface
 			// type and reflect.Type.Elem panics on interfaces. Upstream dig has
 			// the same ordering, so this is inherited rather than introduced.
 			// Reject the flatten+As combination, or define what it means, in T5.
-			rg.ValueType = rg.ValueType.Elem()
+			rg.valueType = rg.valueType.Elem()
 		}
 		return rg, nil
 	default:

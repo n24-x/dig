@@ -42,15 +42,15 @@ var (
 	} = (*constructorNode)(nil)
 )
 
-var _ func(any, constructorOptions) (*constructorNode, error) = newConstructorNode
+var _ func(any, ConstructorOptions) (*constructorNode, error) = newConstructorNode
 
 // newConstructorNode parses ctor into a dag node.
-func newConstructorNode(ctor any, opts constructorOptions) (*constructorNode, error) {
+func newConstructorNode(ctor any, opts ConstructorOptions) (*constructorNode, error) {
 	cval := reflect.ValueOf(ctor)
 	ctype := cval.Type()
 	cptr := cval.Pointer()
 
-	results, err := newResultList(ctype, opts.Result)
+	results, err := newResultList(ctype, opts.result)
 	if err != nil {
 		return nil, err
 	}
@@ -65,7 +65,7 @@ func newConstructorNode(ctor any, opts constructorOptions) (*constructorNode, er
 		return nil, err
 	}
 
-	location := opts.Location
+	location := opts.location
 	if location == nil {
 		location = digreflect.InspectFunc(ctor)
 	}
@@ -86,7 +86,7 @@ func (cn *constructorNode) String() string {
 }
 
 func (cn *constructorNode) Requires() []resourceType {
-	return cn.paramList.Requires().Required
+	return cn.paramList.Requires().required
 }
 
 func (cn *constructorNode) Provides() []resourceType {

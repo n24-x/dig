@@ -23,7 +23,7 @@ func TestNewConstructorNodeGoodCases(t *testing.T) {
 	tests := []struct {
 		name         string
 		input        any
-		opts         constructorOptions
+		opts         ConstructorOptions
 		wantRequires []resourceType
 		wantProvides []resourceType
 	}{
@@ -119,19 +119,19 @@ func TestNewConstructorNodeGoodCases(t *testing.T) {
 		{
 			name:         "As replaces the provided type",
 			input:        func() *bytes.Buffer { return nil },
-			opts:         constructorOptions{Result: resultOptions{As: []any{new(io.Reader)}}},
+			opts:         ConstructorOptions{result: resultOptions{asTypes: []any{new(io.Reader)}}},
 			wantProvides: []resourceType{{valueType: reflect.TypeFor[io.Reader]()}},
 		},
 		{
 			name:         "ValueName names the provided value",
 			input:        func() *typ1 { return nil },
-			opts:         constructorOptions{Result: resultOptions{ValueName: "foo"}},
+			opts:         ConstructorOptions{result: resultOptions{valueName: "foo"}},
 			wantProvides: []resourceType{{valueType: reflect.TypeFor[*typ1](), valueName: "foo"}},
 		},
 		{
 			name:         "GroupName puts the provided value in a group",
 			input:        func() *typ1 { return nil },
-			opts:         constructorOptions{Result: resultOptions{GroupName: "rain"}},
+			opts:         ConstructorOptions{result: resultOptions{groupName: "rain"}},
 			wantProvides: []resourceType{kTyp1Group},
 		},
 	}
@@ -153,7 +153,7 @@ func TestNewConstructorNodeBadCases(t *testing.T) {
 	tests := []struct {
 		name    string
 		input   any
-		opts    constructorOptions
+		opts    ConstructorOptions
 		wantErr string
 	}{
 		{
@@ -249,13 +249,13 @@ func TestNewConstructorNodeBadCases(t *testing.T) {
 		{
 			name:    "GroupName with passive is rejected",
 			input:   func() *typ1 { return nil },
-			opts:    constructorOptions{Result: resultOptions{GroupName: "rain,passive"}},
+			opts:    ConstructorOptions{result: resultOptions{groupName: "rain,passive"}},
 			wantErr: "passive was incorrectly used",
 		},
 		{
 			name:    "As target is not implemented",
 			input:   func() *bytes.Buffer { return nil },
-			opts:    constructorOptions{Result: resultOptions{As: []any{new(io.Closer)}}},
+			opts:    ConstructorOptions{result: resultOptions{asTypes: []any{new(io.Closer)}}},
 			wantErr: "does not implement",
 		},
 		{

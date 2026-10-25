@@ -10,36 +10,36 @@ import (
 // valueResultGroup is a value produced by a constructor that is part of a
 // result group.
 type valueResultGroup struct {
-	// Name of the group as specified in the `group:".."` tag.
-	GroupName string
+	// groupName is the name of the group as specified in the `group:".."` tag.
+	groupName string
 
-	// ValueType is group value type or slice type which
+	// valueType is group value type or slice type which
 	// element type is group value type.
-	ValueType reflect.Type
+	valueType reflect.Type
 
-	// Indicates elements of a value are to be injected individually, instead of
-	// as a group. Requires the value's slice to be a group. If set, ValueType is
-	// the element type rather than the group (slice) type.
-	Flatten bool
+	// flatten indicates elements of a value are to be injected individually,
+	// instead of as a group. Requires the value's slice to be a group. If set,
+	// valueType is the element type rather than the group (slice) type.
+	flatten bool
 
-	As []reflect.Type
+	asTypes []reflect.Type
 }
 
 var _ func(reflect.StructField) (valueResultGroup, error) = newValueResultGroup
 
 func (rg valueResultGroup) Provides() []resourceType {
 	keys := []resourceType{rg.key()}
-	for _, typ := range rg.As {
+	for _, typ := range rg.asTypes {
 		keys = append(keys, resourceType{
 			valueType: typ,
-			groupName: rg.GroupName,
+			groupName: rg.groupName,
 		})
 	}
 	return keys
 }
 
 func (rg valueResultGroup) Extract(w valueWriter, v reflect.Value) {
-	if !rg.Flatten {
+	if !rg.flatten {
 		for _, key := range rg.Provides() {
 			w.submitGroup(key, v)
 		}
@@ -55,19 +55,19 @@ func (rg valueResultGroup) DotResults() []*dot.Result {
 	dotResults := []*dot.Result{
 		{
 			Node: &dot.Node{
-				ValueType: rg.ValueType,
-				GroupName: rg.GroupName,
+				ValueType: rg.valueType,
+				GroupName: rg.groupName,
 			},
 		},
 	}
 
-	if len(rg.As) > 0 {
-		for _, typ := range rg.As {
+	if len(rg.asTypes) > 0 {
+		for _, typ := range rg.asTypes {
 			dotResults = append(dotResults,
 				&dot.Result{
 					Node: &dot.Node{
 						ValueType: typ,
-						GroupName: rg.GroupName,
+						GroupName: rg.groupName,
 					},
 				},
 			)
@@ -87,20 +87,20 @@ func newValueResultGroup(sf reflect.StructField) (valueResultGroup, error) {
 	optionalTag, _ := isFieldOptional(sf)
 
 	switch {
-	case g.Flatten && sf.Type.Kind() != reflect.Slice:
+	case g.flatten && sf.Type.Kind() != reflect.Slice:
 		return valueResultGroup{}, newErrInvalidInput(fmt.Sprintf(
 			"in return-struct, only slice field can use group-tag with flatten: "+
 				"field %q (%v) is not a slice", sf.Name, sf.Type), nil)
 
-	case g.Passive:
+	case g.passive:
 		return valueResultGroup{}, newErrInvalidInput(fmt.Sprintf(
 			"cannot use group-tag with passive in return-struct: passive was incorrectly used in group %q",
-			g.Name), nil)
+			g.name), nil)
 
 	case nameTag != "":
 		return valueResultGroup{}, newErrInvalidInput(fmt.Sprintf(
 			"cannot use name-tag with group-tag: name-tag %q used with group-tag %q",
-			nameTag, g.Name), nil)
+			nameTag, g.name), nil)
 
 	case optionalTag:
 		return valueResultGroup{}, newErrInvalidInput(
@@ -108,20 +108,20 @@ func newValueResultGroup(sf reflect.StructField) (valueResultGroup, error) {
 	}
 
 	valueType := sf.Type
-	if g.Flatten {
+	if g.flatten {
 		valueType = valueType.Elem()
 	}
 
 	return valueResultGroup{
-		GroupName: g.Name,
-		Flatten:   g.Flatten,
-		ValueType: valueType,
+		groupName: g.name,
+		flatten:   g.flatten,
+		valueType: valueType,
 	}, nil
 }
 
 func (rg valueResultGroup) key() resourceType {
 	return resourceType{
-		valueType: rg.ValueType,
-		groupName: rg.GroupName,
+		valueType: rg.valueType,
+		groupName: rg.groupName,
 	}
 }

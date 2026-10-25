@@ -10,10 +10,13 @@ import (
 
 type Option[T any] func(T)
 
-// constructorOptions carries the settings that shape a parsed constructorNode.
-type constructorOptions struct {
-	Result   resultOptions
-	Location *digreflect.Func
+// ConstructorOptions carries the settings that shape a parsed constructorNode.
+// See [Option] for more info.
+//
+// TODO change to unexport
+type ConstructorOptions struct {
+	result   resultOptions
+	location *digreflect.Func
 }
 
 // resultOptions carries the settings that shape a parsed result.
@@ -21,49 +24,49 @@ type resultOptions struct {
 	// If set, this is the name of the associated result value.
 	//
 	// For Return Objects, name:".." tags on fields override this.
-	ValueName string
-	GroupName string
-	As        []any
+	valueName string
+	groupName string
+	asTypes   []any
 }
 
-// resourceOptions holds the accumulated effects of the ResourceOption values
-// passed to Resource.
-type resourceOptions struct {
-	ValueName string
-	GroupName string
-	As        []any
-	Location  *digreflect.Func
-	Info      *ResourceReceiptInfo
-	Observer  Observer
+// ResourceOptions holds the accumulated effects of the ResourceOption values
+// passed to Resource. See [Option] for more info.
+type ResourceOptions struct {
+	valueName string
+	groupName string
+	asTypes   []any
+	location  *digreflect.Func
+	info      *ResourceReceiptInfo
+	observer  Observer
 }
 
-var _ interface{ Validate() error } = (*resourceOptions)(nil)
+var _ interface{ Validate() error } = (*ResourceOptions)(nil)
 
 // Validate reports whether the option combination is usable. Options are
 // validated as a set, because some constraints span multiple fields (Name and
 // Group are mutually exclusive).
-func (ro *resourceOptions) Validate() error {
-	if ro.ValueName != "" && ro.GroupName != "" {
+func (ro *ResourceOptions) Validate() error {
+	if ro.valueName != "" && ro.groupName != "" {
 		return newErrInvalidInput(
 			fmt.Sprintf("cannot use name-tag and group-tag together: name:%q group:%q",
-				ro.ValueName, ro.GroupName), nil)
+				ro.valueName, ro.groupName), nil)
 	}
 
 	// Names must be representable inside a backquoted string. The only
 	// limitation for raw string literals as per
 	// https://golang.org/ref/spec#raw_string_lit is that they cannot contain
 	// backquotes.
-	if strings.ContainsRune(ro.ValueName, '`') {
+	if strings.ContainsRune(ro.valueName, '`') {
 		return newErrInvalidInput(
-			fmt.Sprintf("invalid dig.Name(%q): names cannot contain backquotes", ro.ValueName), nil)
+			fmt.Sprintf("invalid dig.Name(%q): names cannot contain backquotes", ro.valueName), nil)
 	}
-	if strings.ContainsRune(ro.GroupName, '`') {
+	if strings.ContainsRune(ro.groupName, '`') {
 		return newErrInvalidInput(
-			fmt.Sprintf("invalid dig.Group(%q): group names cannot contain backquotes", ro.GroupName), nil)
+			fmt.Sprintf("invalid dig.Group(%q): group names cannot contain backquotes", ro.groupName), nil)
 	}
 
 	duplicateAsType := make(map[reflect.Type]struct{})
-	for _, v := range ro.As {
+	for _, v := range ro.asTypes {
 		asType := reflect.TypeOf(v)
 
 		if asType == nil {

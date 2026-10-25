@@ -30,9 +30,9 @@ type param interface {
 }
 
 type resourceRequirements struct {
-	Required []resourceType
-	Optional []resourceType
-	// TODO Passive []resource
+	required []resourceType
+	optional []resourceType
+	// TODO passive []resource
 }
 
 var (

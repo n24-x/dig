@@ -16,7 +16,7 @@ func TestResourceRejectsDuplicateResources(t *testing.T) {
 	// with.
 	type registration struct {
 		ctor any
-		opts []Option[*resourceOptions]
+		opts []Option[*ResourceOptions]
 	}
 
 	tests := []struct {
@@ -45,11 +45,11 @@ func TestResourceRejectsDuplicateResources(t *testing.T) {
 			name: "named value provided by two constructors",
 			pre: []registration{{
 				ctor: func() *typ1 { return nil },
-				opts: []Option[*resourceOptions]{Name("ro")},
+				opts: []Option[*ResourceOptions]{Name("ro")},
 			}},
 			subject: registration{
 				ctor: func() *typ1 { return nil },
-				opts: []Option[*resourceOptions]{Name("ro")},
+				opts: []Option[*ResourceOptions]{Name("ro")},
 			},
 			wantErr:   `result type *dig.typ1[name="ro"] has already been added`,
 			wantCount: 1,
@@ -75,7 +75,7 @@ func TestResourceRejectsDuplicateResources(t *testing.T) {
 			name: "As collides with an explicitly provided interface",
 			pre: []registration{{
 				ctor: func() *typ1 { return nil },
-				opts: []Option[*resourceOptions]{As(new(any))},
+				opts: []Option[*ResourceOptions]{As(new(any))},
 			}},
 			subject:   registration{ctor: func() any { return nil }},
 			wantErr:   "result type interface {} has already been added",
@@ -183,54 +183,54 @@ func TestResourceRejectsInvalidConstructor(t *testing.T) {
 	}
 }
 
-// TestResourceOptionValidation covers resourceOptions.Validate. Every invalid
+// TestResourceOptionValidation covers ResourceOptions.Validate. Every invalid
 // option combination is rejected before the constructor is parsed.
 func TestResourceOptionValidation(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
 		name    string
-		opts    []Option[*resourceOptions]
+		opts    []Option[*ResourceOptions]
 		wantErr string
 	}{
 		{
 			name:    "name and group are mutually exclusive",
-			opts:    []Option[*resourceOptions]{Name("ro"), Group("rain")},
+			opts:    []Option[*ResourceOptions]{Name("ro"), Group("rain")},
 			wantErr: `cannot use name-tag and group-tag together: name:"ro" group:"rain"`,
 		},
 		{
 			name:    "name cannot contain backquotes",
-			opts:    []Option[*resourceOptions]{Name("r`o")},
+			opts:    []Option[*ResourceOptions]{Name("r`o")},
 			wantErr: "names cannot contain backquotes",
 		},
 		{
 			name:    "group cannot contain backquotes",
-			opts:    []Option[*resourceOptions]{Group("r`ain")},
+			opts:    []Option[*ResourceOptions]{Group("r`ain")},
 			wantErr: "group names cannot contain backquotes",
 		},
 		{
 			name:    "As(nil) is rejected",
-			opts:    []Option[*resourceOptions]{As(nil)},
+			opts:    []Option[*ResourceOptions]{As(nil)},
 			wantErr: "invalid dig.As(nil): argument must be a pointer to an interface",
 		},
 		{
 			name:    "As of a non-pointer is rejected",
-			opts:    []Option[*resourceOptions]{As(typ1{})},
+			opts:    []Option[*ResourceOptions]{As(typ1{})},
 			wantErr: "invalid dig.As(dig.typ1): argument must be a pointer to an interface",
 		},
 		{
 			name:    "As of a pointer to a non-interface is rejected",
-			opts:    []Option[*resourceOptions]{As(new(*typ1))},
+			opts:    []Option[*ResourceOptions]{As(new(*typ1))},
 			wantErr: "invalid dig.As(**dig.typ1): argument must be a pointer to an interface",
 		},
 		{
 			name:    "As of error is rejected",
-			opts:    []Option[*resourceOptions]{As(new(error))},
+			opts:    []Option[*ResourceOptions]{As(new(error))},
 			wantErr: "invalid dig.As(new(error)): cannot use error in As()",
 		},
 		{
 			name:    "duplicate As targets are rejected",
-			opts:    []Option[*resourceOptions]{As(new(any)), As(new(any))},
+			opts:    []Option[*ResourceOptions]{As(new(any)), As(new(any))},
 			wantErr: "duplicate type in As: *interface {}",
 		},
 	}

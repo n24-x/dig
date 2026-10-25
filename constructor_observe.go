@@ -38,18 +38,18 @@ type Observer struct {
 	Report func(ObserveInfo)
 }
 
-var _ func(Observer) Option[*resourceOptions] = WithObserver
+var _ func(Observer) Option[*ResourceOptions] = WithObserver
 
 // WithObserver makes the container report what happens to the constructor
 // passed to [Scope.Resource].
 //
 // Both halves are registered at once because they describe the same run.
 // Passing a zero Observer is legal and observes nothing.
-func WithObserver(ob Observer) Option[*resourceOptions] {
-	return func(ro *resourceOptions) {
+func WithObserver(ob Observer) Option[*ResourceOptions] {
+	return func(ro *ResourceOptions) {
 		if ro == nil {
 			return
 		}
-		ro.Observer = ob
+		ro.observer = ob
 	}
 }
