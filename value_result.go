@@ -56,6 +56,17 @@ func newResult(typ reflect.Type, opts resultOptions) (result, error) {
 				fmt.Sprintf("cannot parse group-tag value %q", opts.groupName), err)
 		}
 		rg := valueResultGroup{valueType: typ, groupName: g.name, flatten: g.flatten}
+
+		// Both flatten and As decide what the group is keyed by, so together
+		// they leave no single type to register. Checked before the As loop
+		// below, which would otherwise validate the slice type instead of its
+		// elements and report a misleading "does not implement".
+		if g.flatten && len(opts.asTypes) > 0 {
+			return nil, newErrInvalidInput(fmt.Sprintf(
+				"cannot use dig.As with a flattened group: flatten keys the group by the "+
+					"element type of %v, so there is no single type for As to apply to", typ), nil)
+		}
+
 		if len(opts.asTypes) > 0 {
 			var asTypes []reflect.Type
 			for _, as := range opts.asTypes {
@@ -85,10 +96,6 @@ func newResult(typ reflect.Type, opts resultOptions) (result, error) {
 					"in return-struct, only slice field can use group-tag with flatten:"+
 						" %v is not a slice", typ), nil)
 			}
-			// TODO: when As was given, rg.valueType is already the interface
-			// type and reflect.Type.Elem panics on interfaces. Upstream dig has
-			// the same ordering, so this is inherited rather than introduced.
-			// Reject the flatten+As combination, or define what it means, in T5.
 			rg.valueType = rg.valueType.Elem()
 		}
 		return rg, nil
