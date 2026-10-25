@@ -190,10 +190,13 @@ func LocationForPC(pc uintptr) Option[*ResourceOptions] {
 	}
 }
 
-// As makes the produced value available under the given interfaces as well as
-// its own type. Each argument must be a pointer to an interface that the value
+// As makes the produced value available as the given interfaces instead of its
+// own type. Each argument must be a pointer to an interface that the value
 // implements; because the argument is untyped, this cannot be checked by the
 // compiler and is validated by [Validate] and at parse time instead.
+//
+// It cannot be combined with a flattened group: flatten keys the group by the
+// element type of the value, while As would key it by one of the interfaces.
 func As(types ...any) Option[*ResourceOptions] {
 	return func(ro *ResourceOptions) {
 		if ro == nil {
