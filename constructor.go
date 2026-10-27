@@ -50,17 +50,17 @@ func newConstructorNode(ctor any, opts ConstructorOptions) (*constructorNode, er
 	ctype := cval.Type()
 	cptr := cval.Pointer()
 
-	results, err := newResultList(ctype, opts.result)
+	resultList, err := newResultList(ctype, opts.result)
 	if err != nil {
 		return nil, err
 	}
 
-	if len(results.Provides()) == 0 {
+	if len(resultList.Provides()) == 0 {
 		return nil, newErrInvalidInput(
 			fmt.Sprintf("constructor %v must provide at least one non-error type result", ctype), nil)
 	}
 
-	params, err := newParamList(ctype)
+	paramList, err := newParamList(ctype)
 	if err != nil {
 		return nil, err
 	}
@@ -75,8 +75,8 @@ func newConstructorNode(ctor any, opts ConstructorOptions) (*constructorNode, er
 		ctype:       ctype,
 		location:    location,
 		dotID:       dot.ConstructorID(cptr),
-		paramList:   params,
-		resultList:  results,
+		paramList:   paramList,
+		resultList:  resultList,
 	}
 	return cn, nil
 }
