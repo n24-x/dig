@@ -19,6 +19,13 @@ type ConstructorOptions struct {
 	location *digreflect.Func
 }
 
+// DecorateOptions holds the accumulated effects of the Option values passed
+// to Decorate. See [Option] for more info.
+type DecorateOptions struct {
+	info     *DecoratorReceiptInfo
+	observer Observer
+}
+
 // resultOptions carries the settings that shape a parsed result.
 type resultOptions struct {
 	// If set, this is the name of the associated result value.
