@@ -1,22 +1,69 @@
 package dig
 
 import (
+	"fmt"
 	"reflect"
 
 	"github.com/n24-x/dig/internal/digreflect"
-	"github.com/n24-x/dig/internal/dot"
 )
 
 type decoratorNode struct {
 	decorator  any
 	dtype      reflect.Type
-	dotID      dot.ConstructorID
 	location   *digreflect.Func
 	paramList  paramList
 	resultList resultList
 	scope      *Scope
 	called     bool
 	observer   Observer
+}
+
+var _ fmt.Stringer = (*decoratorNode)(nil)
+
+var _ func(any, ConstructorOptions) (*constructorNode, error) = newConstructorNode
+
+// newDecoratorNode parses decorator into a decorator node bound to sp.
+func newDecoratorNode(dtor any, sp *Scope, opts DecorateOptions) (*decoratorNode, error) {
+	dval := reflect.ValueOf(dtor)
+	dtype := dval.Type()
+
+	resultList, err := newResultList(dtype, resultOptions{})
+	if err != nil {
+		return nil, err
+	}
+
+	if len(resultList.Provides()) == 0 {
+		return nil, newErrInvalidInput(
+			fmt.Sprintf("decorator %v must have at least one non-error type result", dtype), nil)
+	}
+
+	paramList, err := newParamList(dtype)
+	if err != nil {
+		return nil, err
+	}
+
+	location := digreflect.InspectFunc(dtor)
+
+	// TODO move to Decorate
+	if opts.info != nil {
+		opts.info.Params = paramInfos(paramList.DotParams())
+		opts.info.Results = resultInfos(resultList.DotResults())
+	}
+
+	dn := &decoratorNode{
+		decorator:  dtor,
+		dtype:      dtype,
+		location:   location,
+		paramList:  paramList,
+		resultList: resultList,
+		scope:      sp,
+		observer:   opts.observer,
+	}
+	return dn, nil
+}
+
+func (dn *decoratorNode) String() string {
+	return fmt.Sprintf("[%v]", dn.location)
 }
 
 var _ func(*DecoratorReceiptInfo) Option[*DecorateOptions] = DecoratorReceipt
