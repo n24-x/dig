@@ -151,7 +151,22 @@ var (
 	_ func(uintptr) Option[*ResourceOptions]              = LocationForPC
 	_ func(...any) Option[*ResourceOptions]               = As
 	_ func(*ResourceReceiptInfo) Option[*ResourceOptions] = ResourceReceipt
+	_ func(Observer) Option[*ResourceOptions]             = ResourceObserver
 )
+
+// ResourceObserver makes the container report what happens to the constructor
+// passed to [Scope.Resource].
+//
+// Both halves are registered at once because they describe the same run.
+// Passing a zero Observer is legal and observes nothing.
+func ResourceObserver(ob Observer) Option[*ResourceOptions] {
+	return func(ro *ResourceOptions) {
+		if ro == nil {
+			return
+		}
+		ro.observer = ob
+	}
+}
 
 // Name sets the name of the provided value.
 //
