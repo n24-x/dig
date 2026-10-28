@@ -57,10 +57,10 @@ func (po parameterObject) Requires() resourceRequirements {
 	return rr
 }
 
-func (po parameterObject) Value(sp *Scope) (reflect.Value, error) {
+func (po parameterObject) LookupValue(sp *Scope) (reflect.Value, error) {
 	dest := reflect.New(po.typ).Elem()
 	for _, f := range po.fields {
-		v, err := f.param.Value(sp)
+		v, err := f.param.LookupValue(sp)
 		if err != nil {
 			return reflect.Value{}, err
 		}

@@ -15,16 +15,16 @@ type param interface {
 	// the graph has to guarantee them.
 	Requires() resourceRequirements
 
-	// Value produces the value this param stands for, reading whatever the
+	// LookupValue produces the value this param stands for, reading whatever the
 	// scope already holds.
 	//
-	// It does not execute constructors. By the time Value runs, everything a
+	// It does not execute constructors. By the time LookupValue runs, everything a
 	// required param needs has been built, so a required param that finds
 	// nothing has hit an invariant violation (errValueNotFound) rather than a
 	// missing dependency. Optional params fall back to a zero value, groups
 	// assemble the items collected for them, and parameter structs build
 	// themselves field by field.
-	Value(*Scope) (reflect.Value, error)
+	LookupValue(*Scope) (reflect.Value, error)
 
 	DotParams() []*dot.Param
 }

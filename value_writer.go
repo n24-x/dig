@@ -2,7 +2,7 @@ package dig
 
 import "reflect"
 
-// valueWriter receives the values extracted from a constructor/decorator return.
+// valueWriter receives values returned by constructors and decorators.
 type valueWriter interface {
 	setValue(key resourceType, v reflect.Value)
 	setDecoratedValue(key resourceType, v reflect.Value)
