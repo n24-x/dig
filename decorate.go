@@ -14,7 +14,7 @@ var _ interface {
 var _ interface {
 	Decorate(dtor any, opts ...Option[*DecorateOptions]) error
 	decorate(dtor any, opts DecorateOptions) error
-	registerDecorator(node *decoratorNode)
+	registerDecorator(node *decoratorNode, keys []resourceType)
 	checkDecorate(rs []resourceType) string
 } = (*Scope)(nil)
 
@@ -51,12 +51,17 @@ func (sp *Scope) decorate(dtor any, opts DecorateOptions) error {
 		return err
 	}
 
-	if reason := sp.checkDecorate(node.resultList.Provides()); reason != "" {
+	keys, err := node.resultList.DecorationKeys()
+	if err != nil {
+		return err
+	}
+
+	if reason := sp.checkDecorate(keys); reason != "" {
 		return newErrInvalidInput(reason, nil)
 	}
 
 	node.observer = opts.observer
-	sp.registerDecorator(node)
+	sp.registerDecorator(node, keys)
 
 	if info := opts.info; info != nil {
 		info.Params = paramInfos(node.paramList.DotParams())
@@ -65,10 +70,9 @@ func (sp *Scope) decorate(dtor any, opts DecorateOptions) error {
 	return nil
 }
 
-func (sp *Scope) registerDecorator(node *decoratorNode) {
-	types := node.resultList.Provides()
-	for _, typ := range types {
-		sp.decorators[typ] = node
+func (sp *Scope) registerDecorator(node *decoratorNode, keys []resourceType) {
+	for _, key := range keys {
+		sp.decorators[key] = node
 	}
 }
 
@@ -77,17 +81,16 @@ func (sp *Scope) registerDecorator(node *decoratorNode) {
 // Parsing the params and results is most of it: they reject a return struct
 // where a parameter struct belongs, an error result, an unexported field and
 // the tag combinations that make no sense. The one rule that only matters for
-// a decorator comes after.
+// a decorator comes last, from the results themselves.
 //
 // Parameters need no rule of their own. A group parameter must already be a
 // slice, and a flattened one is rejected outright, so anything that parses as
 // a group parameter already names the group as a whole.
 //
-// A group result does need a rule: a provider may add one member to a group,
-// but a decorator replaces the group, and replacing it with a single member
-// leaves nothing to spread back into a slice. flatten needs no separate
-// message: it keys the group by the element type, which lands on the same
-// check.
+// A group result does need a rule, because a provider may add one member to a
+// group while a decorator replaces the group. It lives in
+// [result.DecorationKeys] so that checking the results and keying them say the
+// same thing.
 func decoratorValidate(dtor any) error {
 	dtype := reflect.TypeOf(dtor)
 	if dtype == nil {
@@ -108,17 +111,8 @@ func decoratorValidate(dtor any) error {
 		return err
 	}
 
-	for _, result := range resultList.results {
-		for _, key := range result.Provides() {
-			if key.groupName != "" && key.valueType.Kind() != reflect.Slice {
-				return newErrInvalidInput(fmt.Sprintf(
-					"cannot decorate group %q: a decorator replaces the group as a "+
-						"whole, so its result must hold the new members", key.groupName), nil)
-			}
-		}
-	}
-
-	return nil
+	_, err = resultList.DecorationKeys()
+	return err
 }
 
 func (sp *Scope) checkDecorate(rs []resourceType) string {

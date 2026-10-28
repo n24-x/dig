@@ -48,6 +48,23 @@ func (ro returnObject) StoreValue(w valueWriter, decorated bool, v reflect.Value
 	}
 }
 
+// DecorationKeys reports the keys the fields of this struct take over.
+//
+// It walks the fields rather than calling Provides because a group field keys
+// its decoration differently from its provider result.
+func (ro returnObject) DecorationKeys() ([]resourceType, error) {
+	var keys []resourceType
+	for _, f := range ro.fields {
+		fieldKeys, err := f.result.DecorationKeys()
+		if err != nil {
+			return nil, newErrInvalidInput(fmt.Sprintf(
+				"bad result field %q", f.fieldName), err)
+		}
+		keys = append(keys, fieldKeys...)
+	}
+	return keys, nil
+}
+
 func (ro returnObject) DotResults() []*dot.Result {
 	var dotResults []*dot.Result
 	for _, f := range ro.fields {

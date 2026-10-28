@@ -31,6 +31,14 @@ func (r valueResult) Provides() []resourceType {
 	return keys
 }
 
+// DecorationKeys reports the keys this result takes over.
+//
+// A single value has nothing to reconsider: the decorator returns the same key
+// the constructor filled, so the reader finds the decoration where it looks.
+func (r valueResult) DecorationKeys() ([]resourceType, error) {
+	return r.Provides(), nil
+}
+
 func (r valueResult) StoreValue(w valueWriter, decorated bool, v reflect.Value) {
 	if decorated {
 		w.setDecoratedValue(r.key(), v)
