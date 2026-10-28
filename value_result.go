@@ -49,11 +49,11 @@ func newResult(typ reflect.Type, opts resultOptions) (result, error) {
 			"cannot use pointer as return-struct, use a value instead:"+
 				" %v is a pointer to a struct that embeds dig.Provided", typ), nil)
 
-	case opts.groupName != "":
-		g, err := parseGroupString(opts.groupName)
+	case opts.groupTag != "":
+		g, err := parseGroupString(opts.groupTag)
 		if err != nil {
 			return nil, newErrInvalidInput(
-				fmt.Sprintf("cannot parse group-tag value %q", opts.groupName), err)
+				fmt.Sprintf("cannot parse group-tag value %q", opts.groupTag), err)
 		}
 		rg := valueResultGroup{valueType: typ, groupName: g.name, flatten: g.flatten}
 

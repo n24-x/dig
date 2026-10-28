@@ -125,13 +125,13 @@ func TestNewConstructorNodeGoodCases(t *testing.T) {
 		{
 			name:         "ValueName names the provided value",
 			input:        func() *typ1 { return nil },
-			opts:         ConstructorOptions{result: resultOptions{valueName: "foo"}},
+			opts:         ConstructorOptions{result: resultOptions{nameTag: "foo"}},
 			wantProvides: []resourceType{{valueType: reflect.TypeFor[*typ1](), valueName: "foo"}},
 		},
 		{
 			name:         "GroupName puts the provided value in a group",
 			input:        func() *typ1 { return nil },
-			opts:         ConstructorOptions{result: resultOptions{groupName: "rain"}},
+			opts:         ConstructorOptions{result: resultOptions{groupTag: "rain"}},
 			wantProvides: []resourceType{kTyp1Group},
 		},
 	}
@@ -249,7 +249,7 @@ func TestNewConstructorNodeBadCases(t *testing.T) {
 		{
 			name:    "GroupName with passive is rejected",
 			input:   func() *typ1 { return nil },
-			opts:    ConstructorOptions{result: resultOptions{groupName: "rain,passive"}},
+			opts:    ConstructorOptions{result: resultOptions{groupTag: "rain,passive"}},
 			wantErr: "passive was incorrectly used",
 		},
 		{
@@ -264,14 +264,14 @@ func TestNewConstructorNodeBadCases(t *testing.T) {
 			// nothing to cast. Reject the pair rather than key it away silently.
 			name:    "GroupName with flatten and As is rejected",
 			input:   func() []*typ1 { return nil },
-			opts:    ConstructorOptions{result: resultOptions{groupName: "rain,flatten", asTypes: []any{new(any)}}},
+			opts:    ConstructorOptions{result: resultOptions{groupTag: "rain,flatten", asTypes: []any{new(any)}}},
 			wantErr: "cannot use dig.As with a group",
 		},
 		{
 			// Same rule without flatten: the original group would disappear.
 			name:    "GroupName with As is rejected",
 			input:   func() *typ1 { return nil },
-			opts:    ConstructorOptions{result: resultOptions{groupName: "rain", asTypes: []any{new(any)}}},
+			opts:    ConstructorOptions{result: resultOptions{groupTag: "rain", asTypes: []any{new(any)}}},
 			wantErr: "cannot use dig.As with a group",
 		},
 		{

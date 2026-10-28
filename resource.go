@@ -61,9 +61,9 @@ func (sp *Scope) Resource(ctor any, opts ...Option[*ResourceOptions]) error {
 func (sp *Scope) resource(ctor any, options ResourceOptions) error {
 	node, err := newConstructorNode(ctor, ConstructorOptions{
 		result: resultOptions{
-			valueName: options.valueName,
-			groupName: options.groupName,
-			asTypes:   options.asTypes,
+			nameTag:  options.nameTag,
+			groupTag: options.groupTag,
+			asTypes:  options.asTypes,
 		},
 		location: options.location,
 	})
@@ -172,12 +172,12 @@ func ResourceObserver(ob Observer) Option[*ResourceOptions] {
 //
 // TODO cleanup
 // Validation is performed once by [Validate] rather than here.
-func Name(name string) Option[*ResourceOptions] {
+func Name(nameTag string) Option[*ResourceOptions] {
 	return func(ro *ResourceOptions) {
 		if ro == nil {
 			return
 		}
-		ro.valueName = name
+		ro.nameTag = nameTag
 	}
 }
 
@@ -185,12 +185,12 @@ func Name(name string) Option[*ResourceOptions] {
 //
 // TODO cleanup
 // Validation is performed once by [Validate] rather than here.
-func Group(groupName string) Option[*ResourceOptions] {
+func Group(groupTag string) Option[*ResourceOptions] {
 	return func(ro *ResourceOptions) {
 		if ro == nil {
 			return
 		}
-		ro.groupName = groupName
+		ro.groupTag = groupTag
 	}
 }
 

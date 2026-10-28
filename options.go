@@ -31,20 +31,20 @@ type resultOptions struct {
 	// If set, this is the name of the associated result value.
 	//
 	// For Return Objects, name:".." tags on fields override this.
-	valueName string
-	groupName string
-	asTypes   []any
+	nameTag  string
+	groupTag string
+	asTypes  []any
 }
 
 // ResourceOptions holds the accumulated effects of the ResourceOption values
 // passed to Resource. See [Option] for more info.
 type ResourceOptions struct {
-	valueName string
-	groupName string
-	asTypes   []any
-	location  *digreflect.Func
-	info      *ResourceReceiptInfo
-	observer  Observer
+	nameTag  string
+	groupTag string
+	asTypes  []any
+	location *digreflect.Func
+	info     *ResourceReceiptInfo
+	observer Observer
 }
 
 var _ interface{ Validate() error } = (*ResourceOptions)(nil)
@@ -53,23 +53,23 @@ var _ interface{ Validate() error } = (*ResourceOptions)(nil)
 // validated as a set, because some constraints span multiple fields (Name and
 // Group are mutually exclusive).
 func (ro *ResourceOptions) Validate() error {
-	if ro.valueName != "" && ro.groupName != "" {
+	if ro.nameTag != "" && ro.groupTag != "" {
 		return newErrInvalidInput(
 			fmt.Sprintf("cannot use name-tag and group-tag together: name:%q group:%q",
-				ro.valueName, ro.groupName), nil)
+				ro.nameTag, ro.groupTag), nil)
 	}
 
 	// Names must be representable inside a backquoted string. The only
 	// limitation for raw string literals as per
 	// https://golang.org/ref/spec#raw_string_lit is that they cannot contain
 	// backquotes.
-	if strings.ContainsRune(ro.valueName, '`') {
+	if strings.ContainsRune(ro.nameTag, '`') {
 		return newErrInvalidInput(
-			fmt.Sprintf("invalid dig.Name(%q): names cannot contain backquotes", ro.valueName), nil)
+			fmt.Sprintf("invalid dig.Name(%q): names cannot contain backquotes", ro.nameTag), nil)
 	}
-	if strings.ContainsRune(ro.groupName, '`') {
+	if strings.ContainsRune(ro.groupTag, '`') {
 		return newErrInvalidInput(
-			fmt.Sprintf("invalid dig.Group(%q): group names cannot contain backquotes", ro.groupName), nil)
+			fmt.Sprintf("invalid dig.Group(%q): group names cannot contain backquotes", ro.groupTag), nil)
 	}
 
 	duplicateAsType := make(map[reflect.Type]struct{})
