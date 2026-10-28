@@ -29,7 +29,12 @@ func (rg valueResultGroup) Provides() []resourceType {
 	return []resourceType{rg.key()}
 }
 
-func (rg valueResultGroup) StoreValue(w valueWriter, v reflect.Value) {
+func (rg valueResultGroup) StoreValue(w valueWriter, decorated bool, v reflect.Value) {
+	if decorated {
+		w.submitDecoratedGroup(rg.key(), v)
+		return
+	}
+
 	if !rg.flatten {
 		for _, key := range rg.Provides() {
 			w.submitGroupValue(key, v)
