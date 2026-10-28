@@ -29,10 +29,15 @@ type param interface {
 	DotParams() []*dot.Param
 }
 
+// resourceRequirements is what a param needs from the graph, split by whether
+// the graph has to guarantee it.
+//
+// There is no bucket for passive groups. A passive group asks for nothing, so
+// it reports nothing: the walk only schedules what it is told about, and the
+// value itself is read from whatever was built for another reason.
 type resourceRequirements struct {
 	required []resourceType
 	optional []resourceType
-	// TODO passive []resource
 }
 
 var (
