@@ -32,13 +32,13 @@ func (rg valueResultGroup) Provides() []resourceType {
 func (rg valueResultGroup) Extract(w valueWriter, v reflect.Value) {
 	if !rg.flatten {
 		for _, key := range rg.Provides() {
-			w.submitGroup(key, v)
+			w.submitGroupValue(key, v)
 		}
 		return
 	}
 
 	for i := range v.Len() {
-		w.submitGroup(rg.key(), v.Index(i))
+		w.submitGroupValue(rg.key(), v.Index(i))
 	}
 }
 
