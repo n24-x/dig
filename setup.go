@@ -41,7 +41,7 @@ func (sp *Scope) Setup(function any, opts ...Option[*SetupOptions]) (err error) 
 	}
 
 	// DeferAcyclicVerification skips the check at registration time, so the
-	// graph may still hold a cycle. Verify before anything walks it: ctorWalk
+	// graph may still hold a cycle. Verify before anything walks it: keyWalk
 	// would otherwise report the cycle as an internal error, and the point of
 	// deferring is that the user gets the same errCycleDetected either way.
 	if sp.needsAcyclicCheck {
@@ -91,12 +91,14 @@ func (sp *Scope) Setup(function any, opts ...Option[*SetupOptions]) (err error) 
 	return nil
 }
 
+type runner interface{ Run(*Scope) error }
+
 // runOrder returns the constructors that must run before function's arguments
 // can be assembled, in the order they have to run.
 //
-// See [ctorWalk] for how the order is computed.
+// See [keyWalk] for how the order is computed.
 func (sp *Scope) runOrder(funcPL paramList) ([]*constructorNode, error) {
-	w := newCtorWalk(sp)
+	w := newKeyWalk(sp)
 
 	reqs := funcPL.Requires()
 	for _, key := range reqs.required {
