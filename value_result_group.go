@@ -29,9 +29,39 @@ func (rg valueResultGroup) Provides() []resourceType {
 	return []resourceType{rg.key()}
 }
 
+// DecorationKeys reports the key this result takes over as a decorator.
+//
+// A group is decorated as a whole, and readers look it up by its element type,
+// so that is where the decoration has to land. A plain `T group:"g"` field is
+// one member of the group, not the group, so it cannot stand for it.
+func (rg valueResultGroup) DecorationKeys() ([]resourceType, error) {
+	if !rg.flatten && rg.valueType.Kind() != reflect.Slice {
+		return nil, newErrInvalidInput(fmt.Sprintf(
+			"decorating group %q needs a slice result holding the new members, "+
+				"not a single one: %v is not a slice", rg.groupName, rg.valueType), nil)
+	}
+	return []resourceType{rg.decorationKey()}, nil
+}
+
+// decorationKey is the key a decoration of this group is written under.
+//
+// Provides names the raw value the constructor returns, which for a plain
+// `[]T group:"g"` field is a `[]T` member of a different group; readers ask for
+// the group by its element type, so the decoration has to go there instead.
+// flatten already keys that way, because its valueType is the element type.
+func (rg valueResultGroup) decorationKey() resourceType {
+	if rg.flatten {
+		return rg.key()
+	}
+	return resourceType{valueType: rg.valueType.Elem(), groupName: rg.groupName}
+}
+
 func (rg valueResultGroup) StoreValue(w valueWriter, decorated bool, v reflect.Value) {
 	if decorated {
-		w.submitDecoratedGroup(rg.key(), v)
+		// The decorator returns the whole new group, so it goes in as one value
+		// under the key readers ask for. Registration rejected the results that
+		// cannot be spread back, so decorationKey cannot panic here.
+		w.submitDecoratedGroup(rg.decorationKey(), v)
 		return
 	}
 

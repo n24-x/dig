@@ -39,6 +39,22 @@ func (rl resultList) Provides() []resourceType {
 	return keys
 }
 
+// DecorationKeys returns the keys a decorator with these results takes over.
+//
+// It differs from Provides for group results, which key their decoration by
+// the element type; see [result.DecorationKeys].
+func (rl resultList) DecorationKeys() ([]resourceType, error) {
+	var keys []resourceType
+	for _, r := range rl.results {
+		resultKeys, err := r.DecorationKeys()
+		if err != nil {
+			return nil, err
+		}
+		keys = append(keys, resultKeys...)
+	}
+	return keys, nil
+}
+
 func (rl resultList) DotResults() []*dot.Result {
 	var dotResults []*dot.Result
 	for _, r := range rl.results {

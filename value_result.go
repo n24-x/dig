@@ -9,7 +9,16 @@ import (
 
 // The result interface represents a result produced by a constructor.
 type result interface {
+	// Provides reports the keys this result fills as a provider.
 	Provides() []resourceType
+
+	// DecorationKeys reports the keys this result takes over as a decorator.
+	//
+	// It differs from Provides only for a group. A provider may add one member
+	// to a group, but a decorator replaces the group, and readers look a group
+	// up by its element type, so a decoration has to land there. A result that
+	// cannot stand for a whole group is rejected here.
+	DecorationKeys() ([]resourceType, error)
 
 	StoreValue(w valueWriter, decorated bool, v reflect.Value)
 
