@@ -44,12 +44,6 @@ func newDecoratorNode(dtor any, sp *Scope, opts DecorateOptions) (*decoratorNode
 
 	location := digreflect.InspectFunc(dtor)
 
-	// TODO move to Decorate
-	if opts.info != nil {
-		opts.info.Params = paramInfos(paramList.DotParams())
-		opts.info.Results = resultInfos(resultList.DotResults())
-	}
-
 	dn := &decoratorNode{
 		decorator:  dtor,
 		dtype:      dtype,
@@ -57,7 +51,6 @@ func newDecoratorNode(dtor any, sp *Scope, opts DecorateOptions) (*decoratorNode
 		paramList:  paramList,
 		resultList: resultList,
 		scope:      sp,
-		observer:   opts.observer,
 	}
 	return dn, nil
 }

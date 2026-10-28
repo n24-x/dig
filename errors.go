@@ -240,3 +240,20 @@ func (e errConstructorFailed) writeMessage(w io.Writer, verb string) {
 func (e errConstructorFailed) Format(w fmt.State, c rune) {
 	formatError(e, w, c)
 }
+
+type errDecorateFailed struct {
+	Func   *digreflect.Func
+	Reason error
+}
+
+func (e errDecorateFailed) Error() string { return fmt.Sprint(e) }
+
+func (e errDecorateFailed) Unwrap() error { return e.Reason }
+
+func (e errDecorateFailed) writeMessage(w io.Writer, verb string) {
+	_, _ = fmt.Fprintf(w, "cannot decorate "+verb, e.Func)
+}
+
+func (e errDecorateFailed) Format(w fmt.State, c rune) {
+	formatError(e, w, c)
+}
