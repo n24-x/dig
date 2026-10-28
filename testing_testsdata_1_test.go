@@ -295,3 +295,14 @@ type emptyResultsBadData17 struct {
 }
 
 var _ = emptyResultsBadData17{}
+
+// Bad Data 18
+// result side: As cannot apply to a group field, because the field is added
+// to its group as a whole and there is no single type to cast to.
+type groupResultsBadData18 struct {
+	Provided
+
+	A *typ1 `group:"rain"`
+}
+
+var _ = groupResultsBadData18{}
