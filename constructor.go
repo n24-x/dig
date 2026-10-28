@@ -38,7 +38,7 @@ var (
 		ResultList() resultList
 		DotID() dot.ConstructorID
 		CType() reflect.Type
-		Run(sp *Scope) error
+		runner
 	} = (*constructorNode)(nil)
 )
 

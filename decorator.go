@@ -21,7 +21,7 @@ type decoratorNode struct {
 
 var _ interface {
 	fmt.Stringer
-	Run(*Scope) error
+	runner
 } = (*decoratorNode)(nil)
 
 var _ func(any, *Scope) (*decoratorNode, error) = newDecoratorNode
