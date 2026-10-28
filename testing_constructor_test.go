@@ -275,6 +275,15 @@ func TestNewConstructorNodeBadCases(t *testing.T) {
 			wantErr: "cannot use dig.As with a group",
 		},
 		{
+			// The other way into a group: a tagged field of a return-struct.
+			// It takes a separate path (newValueResultGroup) and needs its own
+			// check, so pin it separately.
+			name:    "group field with As is rejected",
+			input:   func() groupResultsBadData18 { return groupResultsBadData18{} },
+			opts:    ConstructorOptions{result: resultOptions{asTypes: []any{new(any)}}},
+			wantErr: "cannot use dig.As with a group field",
+		},
+		{
 			name:    "no results at all",
 			input:   func() {},
 			wantErr: "must provide at least one non-error type",

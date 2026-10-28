@@ -108,11 +108,20 @@ func newReturnObjectField(index int, sf reflect.StructField, opts resultOptions)
 			), nil)
 
 	case sf.Tag.Get(_groupTag) != "":
-		var err error
-		r, err = newValueResultGroup(sf)
+		rg, err := newValueResultGroup(sf)
 		if err != nil {
 			return returnObjectField{}, err
 		}
+
+		// A group is added as a whole, so As has no single type to apply to.
+		// Checked after the group itself is parsed so that a bad tag reports
+		// its own error instead of this one.
+		if len(opts.asTypes) > 0 {
+			return returnObjectField{}, newErrInvalidInput(fmt.Sprintf(
+				"cannot use dig.As with a group field: %v is added to group %q as a whole, "+
+					"so there is no single type for As to apply to", sf.Type, rg.groupName), nil)
+		}
+		r = rg
 
 	default:
 		var err error
