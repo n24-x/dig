@@ -43,6 +43,7 @@ var _ interface {
 	lookupValue(resourceType) (reflect.Value, bool)
 	lookupGroup(key resourceType) []reflect.Value
 	lookupConstructor(key resourceType) []*constructorNode
+	hasOwnConstructor(key resourceType) bool
 	lookupDecorator(key resourceType) *decoratorNode
 } = (*Scope)(nil)
 
@@ -72,6 +73,16 @@ func (sp *Scope) lookupConstructor(key resourceType) []*constructorNode {
 		nodes = append(nodes, sp.dag.At(id).(*constructorNode))
 	}
 	return nodes
+}
+
+// hasOwnConstructor reports whether this scope itself provides key.
+//
+// It stops at this scope on purpose. A child scope providing a type its parent
+// already provides is a legal shadow: the child reads its own value and the
+// parent keeps its own, so a registration guard must not look at the ancestor
+// chain. [Scope.lookupConstructor] does look at it, and is the wrong call here.
+func (sp *Scope) hasOwnConstructor(key resourceType) bool {
+	return len(sp.dag.Provide(key)) > 0
 }
 
 // lookupDecorator returns the decorator that supplies key, if any.
