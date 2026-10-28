@@ -54,12 +54,12 @@ func (sp *Scope) Setup(function any, opts ...Option[*SetupOptions]) (err error) 
 		sp.needsAcyclicCheck = false
 	}
 
-	ctorOrder, err := sp.ctorRunOrder(funcPL)
+	order, err := sp.runOrder(funcPL)
 	if err != nil {
 		return err
 	}
 
-	for _, ctor := range ctorOrder {
+	for _, ctor := range order {
 		if err = ctor.Run(sp); err != nil {
 			return err
 		}
@@ -91,11 +91,11 @@ func (sp *Scope) Setup(function any, opts ...Option[*SetupOptions]) (err error) 
 	return nil
 }
 
-// ctorRunOrder returns the constructors that must run before function's
-// arguments can be assembled, in the order they have to run.
+// runOrder returns the constructors that must run before function's arguments
+// can be assembled, in the order they have to run.
 //
 // See [ctorWalk] for how the order is computed.
-func (sp *Scope) ctorRunOrder(funcPL paramList) ([]*constructorNode, error) {
+func (sp *Scope) runOrder(funcPL paramList) ([]*constructorNode, error) {
 	w := newCtorWalk(sp)
 
 	reqs := funcPL.Requires()
