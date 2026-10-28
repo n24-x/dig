@@ -67,10 +67,7 @@ func (pm valueParam) Requires() resourceRequirements {
 	return rr
 }
 
-// TODO
 func (pm valueParam) LookupValue(sp *Scope) (reflect.Value, error) {
-	// TODO decorated
-
 	if v, ok := sp.lookupValue(pm.key()); ok {
 		return v, nil
 	}
