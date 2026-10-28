@@ -42,9 +42,9 @@ func (ro returnObject) Provides() []resourceType {
 	return keys
 }
 
-func (ro returnObject) Extract(w valueWriter, v reflect.Value) {
+func (ro returnObject) StoreValue(w valueWriter, v reflect.Value) {
 	for _, f := range ro.fields {
-		f.result.Extract(w, v.Field(f.fieldIndex))
+		f.result.StoreValue(w, v.Field(f.fieldIndex))
 	}
 }
 

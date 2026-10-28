@@ -77,10 +77,15 @@ func newResultList(ctype reflect.Type, opts resultOptions) (resultList, error) {
 	}, nil
 }
 
-func (rl resultList) ExtractList(w valueWriter, values []reflect.Value) error {
+// StoreResults stores the values a call returned into w and reports the first
+// error among them.
+//
+// The values are the raw return tuple, so error positions are still in it;
+// resultIndexes maps each position to its result, or to -1 for an error.
+func (rl resultList) StoreResults(w valueWriter, values []reflect.Value) error {
 	for i, v := range values {
 		if idx := rl.resultIndexes[i]; idx >= 0 {
-			rl.results[idx].Extract(w, v)
+			rl.results[idx].StoreValue(w, v)
 			continue
 		}
 

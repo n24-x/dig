@@ -11,7 +11,7 @@ import (
 // with a name and/or extra As types.
 type valueResult struct {
 	valueName string
-	valueType reflect.Type
+	valueType reflect.Type // raw type or first as type
 
 	asTypes []reflect.Type
 }
@@ -31,7 +31,7 @@ func (r valueResult) Provides() []resourceType {
 	return keys
 }
 
-func (r valueResult) Extract(w valueWriter, v reflect.Value) {
+func (r valueResult) StoreValue(w valueWriter, v reflect.Value) {
 	for _, key := range r.Provides() {
 		w.setValue(key, v)
 	}

@@ -45,7 +45,7 @@ func (pg valueParamGroup) Requires() resourceRequirements {
 	return rr
 }
 
-func (pg valueParamGroup) Value(sp *Scope) (reflect.Value, error) {
+func (pg valueParamGroup) LookupValue(sp *Scope) (reflect.Value, error) {
 	items := sp.lookupGroup(pg.key())
 	out := reflect.MakeSlice(pg.valueType, 0, len(items))
 	for _, item := range items {

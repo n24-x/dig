@@ -78,7 +78,7 @@ func (pl paramList) Args(sp *Scope) ([]reflect.Value, error) {
 	args := make([]reflect.Value, len(pl.params))
 	for i, p := range pl.params {
 		var err error
-		args[i], err = p.Value(sp)
+		args[i], err = p.LookupValue(sp)
 		if err != nil {
 			return nil, err
 		}

@@ -29,7 +29,7 @@ func (rg valueResultGroup) Provides() []resourceType {
 	return []resourceType{rg.key()}
 }
 
-func (rg valueResultGroup) Extract(w valueWriter, v reflect.Value) {
+func (rg valueResultGroup) StoreValue(w valueWriter, v reflect.Value) {
 	if !rg.flatten {
 		for _, key := range rg.Provides() {
 			w.submitGroupValue(key, v)
