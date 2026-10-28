@@ -31,7 +31,11 @@ func (r valueResult) Provides() []resourceType {
 	return keys
 }
 
-func (r valueResult) StoreValue(w valueWriter, v reflect.Value) {
+func (r valueResult) StoreValue(w valueWriter, decorated bool, v reflect.Value) {
+	if decorated {
+		w.setDecoratedValue(r.key(), v)
+		return
+	}
 	for _, key := range r.Provides() {
 		w.setValue(key, v)
 	}

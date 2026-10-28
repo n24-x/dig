@@ -82,10 +82,10 @@ func newResultList(ctype reflect.Type, opts resultOptions) (resultList, error) {
 //
 // The values are the raw return tuple, so error positions are still in it;
 // resultIndexes maps each position to its result, or to -1 for an error.
-func (rl resultList) StoreResults(w valueWriter, values []reflect.Value) error {
+func (rl resultList) StoreResults(w valueWriter, decorated bool, values []reflect.Value) error {
 	for i, v := range values {
 		if idx := rl.resultIndexes[i]; idx >= 0 {
-			rl.results[idx].StoreValue(w, v)
+			rl.results[idx].StoreValue(w, decorated, v)
 			continue
 		}
 
