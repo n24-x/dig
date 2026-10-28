@@ -60,32 +60,6 @@ func newScope() *Scope {
 	}
 }
 
-// lookupValue returns the value built for t, if any.
-//
-// Multi-scope lookup (walking up parentScope) belongs to the scope-tree work;
-// it will live inside this method so the signature does not change.
-func (sp *Scope) lookupValue(typ resourceType) (reflect.Value, bool) {
-	// TODO walking up parentScope
-	v, ok := sp.values[typ]
-	return v, ok
-}
-
-// lookupGroup returns the values collected for the group key.
-//
-// The order is deliberately unstable: users must not depend on the order in
-// which the group's providers were registered, so the slice is shuffled every
-// time it is read. A copy is shuffled rather than the stored slice, otherwise
-// repeated reads would fight over the stored order and later submissions would
-// append to an already scrambled list.
-//
-// Multi-scope lookup (merging the ancestors' groups) belongs to the
-// scope-tree work; it will live inside this method so the signature does not
-// change.
-func (sp *Scope) lookupGroup(key resourceType) []reflect.Value {
-	// TODO walking up parentScope
-	return shuffledCopy(sp.valueGroups[key])
-}
-
 // lookupConstructor returns the constructors that provide key, if any.
 //
 // Multi-scope lookup (walking up parentScope) belongs to the scope-tree work;
@@ -107,6 +81,56 @@ func (sp *Scope) lookupConstructor(key resourceType) []*constructorNode {
 func (sp *Scope) lookupDecorator(key resourceType) *decoratorNode {
 	// TODO walking up parentScope
 	return sp.decorators[key]
+}
+
+// lookupValue returns the value for key, if any.
+//
+// A decoration shadows the provider's value rather than replacing it: the
+// decorated table is consulted first and the provider's value stays behind it,
+// so a scope that registered a decorator but has not run it yet still reads
+// what the constructor built.
+//
+// Multi-scope lookup (walking up parentScope) belongs to the scope-tree work;
+// it will live inside this method so the signature does not change.
+func (sp *Scope) lookupValue(typ resourceType) (reflect.Value, bool) {
+	// TODO walking up parentScope
+	if v, ok := sp.decoratedValues[typ]; ok {
+		return v, true
+	}
+
+	v, ok := sp.values[typ]
+	return v, ok
+}
+
+// lookupGroup returns the members collected for the group key.
+//
+// A decorated group comes back in the order the decorator returned, and it is
+// the whole group rather than a part of it. The shuffle below exists so that
+// nobody depends on the order providers happened to be registered in; a
+// decorator's order is a decision, so it is kept as made.
+//
+// Otherwise the order is deliberately unstable: the slice is shuffled every
+// time it is read. A copy is shuffled rather than the stored slice, otherwise
+// repeated reads would fight over the stored order and later submissions would
+// append to an already scrambled list.
+//
+// Multi-scope lookup (merging the ancestors' groups) belongs to the
+// scope-tree work; it will live inside this method so the signature does not
+// change.
+func (sp *Scope) lookupGroup(key resourceType) []reflect.Value {
+	// TODO walking up parentScope
+	if whole, ok := sp.decoratedGroups[key]; ok {
+		// Spread the stored slice back into members. Rebuilding it from the
+		// element type also normalises a named slice type: a decorator may
+		// return type Handlers []string where the consumer asked for []string.
+		items := make([]reflect.Value, whole.Len())
+		for i := range whole.Len() {
+			items[i] = whole.Index(i)
+		}
+		return items
+	}
+
+	return shuffledCopy(sp.valueGroups[key])
 }
 
 // shuffledCopy returns a shuffled copy of items, leaving items untouched.
