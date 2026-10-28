@@ -13,8 +13,11 @@ type Scope struct {
 	dag        *dag.DefaultGraph[resourceType] // store ctor
 	decorators map[resourceType]*decoratorNode // store decorator
 
-	values      map[resourceType]reflect.Value
-	valueGroups map[resourceType][]reflect.Value
+	values          map[resourceType]reflect.Value
+	decoratedValues map[resourceType]reflect.Value
+
+	valueGroups     map[resourceType][]reflect.Value
+	decoratedGroups map[resourceType]reflect.Value
 
 	fnCaller fnCaller
 
@@ -47,11 +50,13 @@ var _ valueWriter = (*Scope)(nil)
 
 func newScope() *Scope {
 	return &Scope{
-		dag:         dag.New[resourceType](),
-		values:      make(map[resourceType]reflect.Value),
-		valueGroups: make(map[resourceType][]reflect.Value),
-		decorators:  make(map[resourceType]*decoratorNode),
-		fnCaller:    defaultFnCaller,
+		dag:             dag.New[resourceType](),
+		decorators:      make(map[resourceType]*decoratorNode),
+		values:          make(map[resourceType]reflect.Value),
+		valueGroups:     make(map[resourceType][]reflect.Value),
+		decoratedValues: make(map[resourceType]reflect.Value),
+		decoratedGroups: make(map[resourceType]reflect.Value),
+		fnCaller:        defaultFnCaller,
 	}
 }
 
@@ -121,7 +126,17 @@ func (sp *Scope) setValue(key resourceType, v reflect.Value) {
 	sp.values[key] = v
 }
 
-// submitGroup appends v to the group stored under key.
-func (sp *Scope) submitGroup(key resourceType, v reflect.Value) {
+// setDecoratedValue records what a decorator produced for key.
+func (sp *Scope) setDecoratedValue(key resourceType, v reflect.Value) {
+	sp.decoratedValues[key] = v
+}
+
+// submitGroupValue adds one member to the group stored under key.
+func (sp *Scope) submitGroupValue(key resourceType, v reflect.Value) {
 	sp.valueGroups[key] = append(sp.valueGroups[key], v)
+}
+
+// submitDecoratedGroup replaces the whole group stored under key with slice.
+func (sp *Scope) submitDecoratedGroup(key resourceType, slice reflect.Value) {
+	sp.decoratedGroups[key] = slice
 }
