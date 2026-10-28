@@ -59,8 +59,8 @@ func (sp *Scope) Setup(function any, opts ...Option[*SetupOptions]) (err error) 
 		return err
 	}
 
-	for _, ctor := range order {
-		if err = ctor.Run(sp); err != nil {
+	for _, node := range order {
+		if err = node.Run(sp); err != nil {
 			return err
 		}
 	}
@@ -93,31 +93,23 @@ func (sp *Scope) Setup(function any, opts ...Option[*SetupOptions]) (err error) 
 
 type runner interface{ Run(*Scope) error }
 
-// runOrder returns the constructors that must run before function's arguments
-// can be assembled, in the order they have to run.
+// runOrder returns the nodes that must run before function's arguments can be
+// assembled, in the order they have to run. A returned node is a constructor
+// or a decorator; both are run the same way.
 //
 // See [keyWalk] for how the order is computed.
-func (sp *Scope) runOrder(funcPL paramList) ([]*constructorNode, error) {
+func (sp *Scope) runOrder(funcPL paramList) ([]runner, error) {
 	w := newKeyWalk(sp)
 
 	reqs := funcPL.Requires()
 	for _, key := range reqs.required {
-		providers := sp.dag.Provide(key)
-		if len(providers) == 0 {
-			w.addMissing(key)
-			continue
-		}
-		for _, id := range providers {
-			if err := w.visit(id); err != nil {
-				return nil, err
-			}
+		if err := w.resolveRequired(key); err != nil {
+			return nil, err
 		}
 	}
 	for _, key := range reqs.optional {
-		for _, id := range sp.dag.Provide(key) { // nobody provides it => no node => skip
-			if err := w.visit(id); err != nil {
-				return nil, err
-			}
+		if err := w.resolveOptional(nil, key); err != nil { // nil: the function being set up
+			return nil, err
 		}
 	}
 
