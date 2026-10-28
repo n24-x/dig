@@ -20,7 +20,7 @@ type decoratorNode struct {
 
 var _ fmt.Stringer = (*decoratorNode)(nil)
 
-var _ func(any, ConstructorOptions) (*constructorNode, error) = newConstructorNode
+var _ func(any, *Scope, DecorateOptions) (*decoratorNode, error) = newDecoratorNode
 
 // newDecoratorNode parses decorator into a decorator node bound to sp.
 func newDecoratorNode(dtor any, sp *Scope, opts DecorateOptions) (*decoratorNode, error) {
