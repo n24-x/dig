@@ -72,7 +72,7 @@ func (pm valueParam) LookupValue(sp *Scope) (reflect.Value, error) {
 		return v, nil
 	}
 
-	if pm.optional && len(sp.dag.Provide(pm.key())) == 0 {
+	if pm.optional && len(sp.lookupConstructor(pm.key())) == 0 {
 		return reflect.Zero(pm.valueType), nil
 	}
 
