@@ -9,7 +9,7 @@ import (
 // nodeColor is a node's mark during the walk.
 //
 // It is a distinct type rather than a bare uint8 so that assigning anything
-// else to ctorWalk.state is a compile error.
+// else to keyWalk.state is a compile error.
 type nodeColor uint8
 
 const (
@@ -18,7 +18,7 @@ const (
 	_black                  // fully processed and already emitted
 )
 
-// ctorWalk computes the order in which constructors have to run, starting from
+// keyWalk computes the order in which constructors have to run, starting from
 // a function's params.
 //
 // It walks the graph with a three-colour depth-first search: white nodes are
@@ -36,7 +36,7 @@ const (
 //
 // Nodes are emitted on the way out, so the result is a post-order and every
 // dependency precedes its consumer.
-type ctorWalk struct {
+type keyWalk struct {
 	sp    *Scope
 	state []nodeColor // indexed by NodeID; 0 is unused
 
@@ -51,9 +51,9 @@ type ctorWalk struct {
 	seen    map[resourceType]struct{} // TODO go1.28 change to container/set
 }
 
-func newCtorWalk(sp *Scope) *ctorWalk {
+func newKeyWalk(sp *Scope) *keyWalk {
 	count := sp.dag.Count()
-	return &ctorWalk{
+	return &keyWalk{
 		sp:    sp,
 		state: make([]nodeColor, count+1),
 		order: make([]*constructorNode, 0, count),
@@ -62,7 +62,7 @@ func newCtorWalk(sp *Scope) *ctorWalk {
 }
 
 // visit emits id after everything it depends on.
-func (w *ctorWalk) visit(nodeID dag.NodeID) error {
+func (w *keyWalk) visit(nodeID dag.NodeID) error {
 	switch w.state[nodeID] {
 	case _black: // already emitted, nothing to do
 		return nil
@@ -118,7 +118,7 @@ func (w *ctorWalk) visit(nodeID dag.NodeID) error {
 }
 
 // addMissing records key once.
-func (w *ctorWalk) addMissing(key resourceType) {
+func (w *keyWalk) addMissing(key resourceType) {
 	if _, ok := w.seen[key]; ok {
 		return
 	}
@@ -127,7 +127,7 @@ func (w *ctorWalk) addMissing(key resourceType) {
 }
 
 // err reports the missing providers collected so far, if any.
-func (w *ctorWalk) err() error {
+func (w *keyWalk) err() error {
 	if len(w.missing) == 0 {
 		return nil
 	}
