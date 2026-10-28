@@ -134,6 +134,23 @@ func TestNewConstructorNodeGoodCases(t *testing.T) {
 			opts:         ConstructorOptions{result: resultOptions{groupTag: "rain"}},
 			wantProvides: []resourceType{kTyp1Group},
 		},
+		{
+			// Group() takes a group-tag value, not a bare name, so flatten is
+			// honoured here too: the slice is split and its element type keys
+			// the group, instead of the whole slice becoming one member.
+			name:         "GroupName with flatten uses the element type",
+			input:        func() []*typ1 { return nil },
+			opts:         ConstructorOptions{result: resultOptions{groupTag: "rain,flatten"}},
+			wantProvides: []resourceType{kTyp1Group},
+		},
+		{
+			// Without flatten the whole slice is one member, so the key keeps
+			// the slice type. The two cases differ only by that suffix.
+			name:         "GroupName without flatten keys the group by the slice type",
+			input:        func() []*typ1 { return nil },
+			opts:         ConstructorOptions{result: resultOptions{groupTag: "rain"}},
+			wantProvides: []resourceType{{valueType: reflect.TypeFor[[]*typ1](), groupName: "rain"}},
+		},
 	}
 
 	for _, tt := range tests {
