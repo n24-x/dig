@@ -59,11 +59,11 @@ func (ro returnObject) DotResults() []*dot.Result {
 func newReturnObject(typ reflect.Type, opts resultOptions) (returnObject, error) {
 	var ro returnObject
 
-	if opts.valueName != "" {
+	if opts.nameTag != "" {
 		return returnObject{}, newErrInvalidInput(fmt.Sprintf(
 			"cannot use dig.Name with return-struct: %v embeds dig.Provided", typ), nil)
 	}
-	if opts.groupName != "" {
+	if opts.groupTag != "" {
 		return returnObject{}, newErrInvalidInput(fmt.Sprintf(
 			"cannot use dig.Group with return-struct: %v embeds dig.Provided", typ), nil)
 	}
@@ -127,7 +127,7 @@ func newReturnObjectField(index int, sf reflect.StructField, opts resultOptions)
 		var err error
 		if name := sf.Tag.Get(_nameTag); name != "" {
 			// can modify in-place because options are passed-by-value.
-			opts.valueName = name
+			opts.nameTag = name
 		}
 		r, err = newResult(sf.Type, opts)
 		if err != nil {
