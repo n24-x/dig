@@ -46,17 +46,16 @@ func (sp *Scope) Decorate(dtor any, opts ...Option[*DecorateOptions]) error {
 }
 
 func (sp *Scope) decorate(dtor any, opts DecorateOptions) error {
-	node, err := newDecoratorNode(dtor, sp, opts)
+	node, err := newDecoratorNode(dtor, sp)
 	if err != nil {
 		return err
 	}
-
-	node.observer = opts.observer
 
 	if reason := sp.checkDecorate(node.resultList.Provides()); reason != "" {
 		return newErrInvalidInput(reason, nil)
 	}
 
+	node.observer = opts.observer
 	sp.registerDecorator(node)
 
 	if info := opts.info; info != nil {
