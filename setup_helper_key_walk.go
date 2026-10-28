@@ -13,107 +13,177 @@ import (
 type nodeColor uint8
 
 const (
-	_white nodeColor = iota // undiscovered: not visited yet
+	_white nodeColor = iota // undiscovered: absent from the table, not stored
 	_gray                   // on the current DFS path
 	_black                  // fully processed and already emitted
 )
 
-// keyWalk computes the order in which constructors have to run, starting from
-// a function's params.
+// keyWalk computes the order in which constructors and decorators have to run,
+// starting from a function's params.
 //
 // It walks the graph with a three-colour depth-first search: white nodes are
 // undiscovered, gray nodes sit on the current path, black nodes are done and
-// emitted. Required edges come from the dag; optional edges are followed too,
-// but only when somebody provides the key, so an optional dep whose key nobody
-// provides contributes no node and the param keeps its zero value.
+// emitted. Nodes are emitted on the way out, so the result is a post-order and
+// every dependency precedes its consumer.
 //
-// An optional edge is followed only when its provider can still run before the
-// consumer. If the provider's required closure leads back to the consumer, the
-// two intents contradict each other and the walk fails: silently handing the
-// consumer a zero value would hide a real mistake in the wiring. Required edges
-// have no such escape hatch, but dag.Add has already rejected cycles over them,
-// so a back edge there is an invariant violation.
+// The walk resolves one key at a time instead of following the dag's edges. A
+// decorator is not a dag node, so edges alone cannot see it, and the decorator
+// for a key has to be emitted after the constructors that build its input.
 //
-// Nodes are emitted on the way out, so the result is a post-order and every
-// dependency precedes its consumer.
+// Optional deps are followed too, but only when somebody provides the key, so
+// an optional dep whose key nobody provides contributes no node and the param
+// keeps its zero value. An optional dep has no dag edge, so following one can
+// close a loop that dag.Add never saw; that is reported as a wiring mistake
+// rather than as the invariant violation a real cycle is.
 type keyWalk struct {
 	sp    *Scope
-	state []nodeColor // indexed by NodeID; 0 is unused
+	state map[runner]nodeColor // one table for both node kinds
 
-	// order holds the resolved nodes in run order, not their NodeIDs: the walk
-	// has to look each one up to reach its params anyway, so doing the cast here
-	// keeps callers from repeating it.
-	order []*constructorNode
+	// order holds the resolved nodes in run order. The walk reaches each one's
+	// params anyway, so keeping the nodes here saves callers from looking them
+	// up again.
+	order []runner
 
 	// missing collects required keys that nobody provides, in the order they
 	// were first seen. seen keeps that list free of duplicates.
 	missing []resourceType
 	seen    map[resourceType]struct{} // TODO go1.28 change to container/set
+
+	// optionalPath holds the optional edges open on the current DFS path. A
+	// gray hit is a cycle either way; whether the path came in through one of
+	// these is what separates a wiring mistake from a broken graph.
+	optionalPath []optionalEdge
+}
+
+// optionalEdge is a dependency a consumer asked for but can live without.
+type optionalEdge struct {
+	// consumer is the node that asked, or nil for the function being set up.
+	consumer fmt.Stringer
+	key      resourceType
 }
 
 func newKeyWalk(sp *Scope) *keyWalk {
 	count := sp.dag.Count()
 	return &keyWalk{
 		sp:    sp,
-		state: make([]nodeColor, count+1),
-		order: make([]*constructorNode, 0, count),
+		state: make(map[runner]nodeColor, count),
+		order: make([]runner, 0, count),
 		seen:  make(map[resourceType]struct{}),
 	}
 }
 
-// visit emits id after everything it depends on.
-func (w *keyWalk) visit(nodeID dag.NodeID) error {
-	switch w.state[nodeID] {
+// resolve schedules whatever has to run before key can be read, and reports
+// whether the key can be built at all.
+//
+// A decorator alone does not make a key buildable: it rewrites what a
+// constructor produced, so a key with a decorator but no constructor is still
+// missing.
+func (w *keyWalk) resolve(key resourceType) (bool, error) {
+	ctors := w.sp.lookupConstructor(key)
+	if len(ctors) == 0 {
+		return false, nil
+	}
+
+	// A decorator rewrites the value the constructors build, so it is emitted
+	// after them; its own params pull those constructors in through the
+	// recursion, which is also why the loop below is skipped when one is found.
+	//
+	// While a decorator sits on the path (_gray) it is skipped and the raw
+	// providers are scheduled instead. That is what lets `func(b *B) *A` share
+	// a graph with a B that needs an A: the decorator's own read of A sees the
+	// value before it was decorated.
+	if d := w.sp.lookupDecorator(key); d != nil && w.state[d] != _gray {
+		return true, w.visitDecorator(d)
+	}
+
+	for _, cn := range ctors {
+		if err := w.visit(cn); err != nil {
+			return true, err
+		}
+	}
+	return true, nil
+}
+
+// resolveRequired is resolve for a key the graph has to guarantee: nobody
+// providing it is a mistake the user has to fix.
+func (w *keyWalk) resolveRequired(key resourceType) error {
+	found, err := w.resolve(key)
+	if err != nil {
+		return err
+	}
+	if !found {
+		w.addMissing(key)
+	}
+	return nil
+}
+
+// resolveOptional is resolve for a key the caller can live without.
+//
+// It still has to resolve when somebody provides the key, so that its
+// providers run; the edge is remembered while that happens, so a cycle closed
+// through it can name the dependency to drop.
+func (w *keyWalk) resolveOptional(consumer fmt.Stringer, key resourceType) error {
+	w.optionalPath = append(w.optionalPath, optionalEdge{consumer: consumer, key: key})
+	_, err := w.resolve(key)
+	w.optionalPath = w.optionalPath[:len(w.optionalPath)-1]
+	return err
+}
+
+// visit emits cn after everything it depends on.
+func (w *keyWalk) visit(cn *constructorNode) error {
+	switch w.state[cn] {
 	case _black: // already emitted, nothing to do
 		return nil
 	case _gray: // reached again while still on the path
-		// This error only for developers, should never be encountered by users.
-		return fmt.Errorf("dig: internal error: circular dependency detected while "+
-			"ordering constructors at node %d", nodeID)
+		return w.cycleError(cn)
 	case _white:
 		// Fresh node: fall through to the walk below.
 	}
-	w.state[nodeID] = _gray
+	w.state[cn] = _gray
 
-	node, ok := w.sp.dag.At(nodeID).(*constructorNode)
-	if !ok {
-		// This error only for developers, should never be encountered by users.
-		return fmt.Errorf("dig: internal error: DAG node %d is not a constructor", nodeID)
-	}
-
-	// Required deps: dag edges. A required dep that nobody provides has no
-	// edge and would otherwise be skipped in silence, so check it here.
-	for _, key := range node.Requires() {
-		if len(w.sp.dag.Provide(key)) == 0 {
-			w.addMissing(key)
+	reqs := cn.ParamList().Requires()
+	for _, key := range reqs.required {
+		if err := w.resolveRequired(key); err != nil {
+			return err
 		}
 	}
-	for _, dep := range w.sp.dag.OutNeighbors(nodeID) {
-		if err := w.visit(dep); err != nil {
+	for _, key := range reqs.optional {
+		if err := w.resolveOptional(cn, key); err != nil {
 			return err
 		}
 	}
 
-	// Optional deps: no edge in the dag, so resolve the providers by hand.
-	// If the provider would need this node to have run first, the two cannot
-	// both be satisfied; report it rather than silently handing the consumer a
-	// zero value.
-	for _, key := range node.ParamList().Requires().optional {
-		for _, depNodeID := range w.sp.dag.Provide(key) {
-			if w.sp.requiredReaches(depNodeID, nodeID) {
-				return fmt.Errorf(
-					"dig: constructor %v optionally needs %v, but its provider %v "+
-						"requires this constructor: resolve the cycle",
-					node, key, w.sp.dag.At(depNodeID))
-			}
-			if err := w.visit(depNodeID); err != nil {
-				return err
-			}
+	w.state[cn] = _black
+	w.order = append(w.order, cn)
+	return nil
+}
+
+// visitDecorator emits dn after the keys its params need.
+func (w *keyWalk) visitDecorator(dn *decoratorNode) error {
+	switch w.state[dn] {
+	case _black: // already emitted, nothing to do
+		return nil
+	case _gray: // reached again while still on the path
+		return w.cycleError(dn)
+	case _white:
+		// Fresh node: fall through to the walk below.
+	}
+	w.state[dn] = _gray
+
+	reqs := dn.paramList.Requires()
+	for _, key := range reqs.required {
+		if err := w.resolveRequired(key); err != nil {
+			return err
+		}
+	}
+	for _, key := range reqs.optional {
+		if err := w.resolveOptional(dn, key); err != nil {
+			return err
 		}
 	}
 
-	w.state[nodeID] = _black
-	w.order = append(w.order, node)
+	w.state[dn] = _black
+	w.order = append(w.order, dn)
 	return nil
 }
 
@@ -135,33 +205,27 @@ func (w *keyWalk) err() error {
 	return &dag.MissingProviderError[resourceType]{Resources: w.missing}
 }
 
-// requiredReaches reports whether target is reachable from start by following
-// required edges only.
+// cycleError reports a node reached while it is still on the DFS path.
 //
-// It is used to decide whether an optional edge may be followed: if the
-// provider would need the consumer to have run first, the two contradict each
-// other and the graph is rejected.
-//
-// TODO: this walks a subgraph per optional edge. Fine for the graph sizes dig
-// sees; revisit if that ever changes.
-func (sp *Scope) requiredReaches(start, target dag.NodeID) bool {
-	if start == target {
-		return true
+// How the path got here decides how this reads. Through an optional edge it is
+// a wiring mistake: the user asked for something that cannot be satisfied, and
+// naming that edge is the whole fix. Without one it can only be a cycle that
+// dag.Add would have rejected, which means DeferAcyclicVerification let it
+// through — an invariant violation, not something the user can act on.
+func (w *keyWalk) cycleError(target runner) error {
+	if len(w.optionalPath) == 0 {
+		// This error only for developers, should never be encountered by users.
+		return fmt.Errorf(
+			"dig: internal error: circular dependency detected while ordering %v", target)
 	}
-	seen := map[dag.NodeID]bool{start: true} // TODO go1.28 change to container/set
-	stack := []dag.NodeID{start}
-	for len(stack) > 0 {
-		u := stack[len(stack)-1]
-		stack = stack[:len(stack)-1]
-		for _, v := range sp.dag.OutNeighbors(u) {
-			if v == target {
-				return true
-			}
-			if !seen[v] {
-				seen[v] = true
-				stack = append(stack, v)
-			}
-		}
+
+	// The innermost edge is the one that closed the loop.
+	edge := w.optionalPath[len(w.optionalPath)-1]
+	consumer := "the function being set up"
+	if edge.consumer != nil {
+		consumer = fmt.Sprint(edge.consumer)
 	}
-	return false
+	return fmt.Errorf(
+		"dig: %v optionally needs %v, but following that edge leads back to %v: "+
+			"resolve the cycle", consumer, edge.key, target)
 }
