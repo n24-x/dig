@@ -3,6 +3,7 @@ package dig
 import (
 	"fmt"
 	"reflect"
+	"time"
 
 	"github.com/n24-x/dig/internal/digreflect"
 )
@@ -18,12 +19,19 @@ type decoratorNode struct {
 	observer   Observer
 }
 
-var _ fmt.Stringer = (*decoratorNode)(nil)
+var _ interface {
+	fmt.Stringer
+	Run(*Scope) error
+} = (*decoratorNode)(nil)
 
-var _ func(any, *Scope, DecorateOptions) (*decoratorNode, error) = newDecoratorNode
+var _ func(any, *Scope) (*decoratorNode, error) = newDecoratorNode
 
-// newDecoratorNode parses decorator into a decorator node bound to sp.
-func newDecoratorNode(dtor any, sp *Scope, opts DecorateOptions) (*decoratorNode, error) {
+// newDecoratorNode parses dtor into a decorator node bound to sp.
+//
+// It reads nothing from DecorateOptions: the observer is set by the caller
+// once the registration is accepted, so a rejected decorator never carries
+// one. Everything this node needs to run comes from the function itself.
+func newDecoratorNode(dtor any, sp *Scope) (*decoratorNode, error) {
 	dval := reflect.ValueOf(dtor)
 	dtype := dval.Type()
 
@@ -53,6 +61,58 @@ func newDecoratorNode(dtor any, sp *Scope, opts DecorateOptions) (*decoratorNode
 		scope:      sp,
 	}
 	return dn, nil
+}
+
+// Run reads the decorator's arguments, calls it, and stores the results as
+// decorations. It runs at most once: later calls are no-ops.
+//
+// Arguments are read from dn.scope, the scope the decorator was registered on,
+// not from whichever scope triggered it. A decorator's dependencies resolve
+// where it was declared; in a single scope the two are the same.
+//
+// Results go through staging and are committed only after they were stored
+// without error, so a decorator that returns an error leaves the scope
+// untouched instead of half decorated.
+func (dn *decoratorNode) Run(sp *Scope) (err error) {
+	if dn.called {
+		return nil
+	}
+
+	args, err := dn.paramList.Args(dn.scope)
+	if err != nil {
+		return errArgumentsFailed{Func: dn.location, Reason: err}
+	}
+
+	ob := dn.observer
+	obName := dn.location.Dotted()
+	if ob.Announce != nil {
+		ob.Announce(obName)
+	}
+
+	start := time.Now()
+	if ob.Report != nil {
+		defer func() {
+			ob.Report(ObserveInfo{Name: obName, Error: err, ElapsedTime: time.Since(start)})
+		}()
+	}
+
+	if dn.scope.recoverFromPanics {
+		defer func() {
+			if p := recover(); p != nil {
+				err = PanicError{Func: dn.location, Panic: p}
+			}
+		}()
+	}
+
+	staging := newStagingValues()
+	results := dn.scope.fnCaller(reflect.ValueOf(dn.decorator), args)
+	if err = dn.resultList.StoreResults(staging, true, results); err != nil {
+		return errDecorateFailed{Func: dn.location, Reason: err}
+	}
+
+	staging.Commit(dn.scope)
+	dn.called = true
+	return nil
 }
 
 func (dn *decoratorNode) String() string {
