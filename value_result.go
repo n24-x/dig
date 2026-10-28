@@ -57,34 +57,18 @@ func newResult(typ reflect.Type, opts resultOptions) (result, error) {
 		}
 		rg := valueResultGroup{valueType: typ, groupName: g.name, flatten: g.flatten}
 
-		// Both flatten and As decide what the group is keyed by, so together
-		// they leave no single type to register. Checked before the As loop
-		// below, which would otherwise validate the slice type instead of its
-		// elements and report a misleading "does not implement".
-		if g.flatten && len(opts.asTypes) > 0 {
+		// A group holds one value per member and is read as the whole slice.
+		// As changes what a single result is keyed by, which for a group would
+		// mean keying the member by another type: either the group stops being
+		// the one consumers read, or flatten has already turned the member into
+		// the element and there is nothing left to cast. Neither is useful, so
+		// reject the combination instead of silently keying the group away.
+		if len(opts.asTypes) > 0 {
 			return nil, newErrInvalidInput(fmt.Sprintf(
-				"cannot use dig.As with a flattened group: flatten keys the group by the "+
-					"element type of %v, so there is no single type for As to apply to", typ), nil)
+				"cannot use dig.As with a group: %v is added to group %q as a whole, "+
+					"so there is no single type for As to apply to", typ, g.name), nil)
 		}
 
-		if len(opts.asTypes) > 0 {
-			var asTypes []reflect.Type
-			for _, as := range opts.asTypes {
-				ifaceType := reflect.TypeOf(as).Elem() // TODO validate nil
-				if ifaceType == typ {
-					continue // ignore
-				}
-				if !typ.Implements(ifaceType) {
-					return nil, newErrInvalidInput(
-						fmt.Sprintf("invalid dig.As: %v does not implement %v", typ, ifaceType), nil)
-				}
-				asTypes = append(asTypes, ifaceType)
-			}
-			if len(asTypes) > 0 {
-				rg.valueType = asTypes[0]
-				rg.asTypes = asTypes[1:]
-			}
-		}
 		if g.passive {
 			return nil, newErrInvalidInput(fmt.Sprintf(
 				"cannot use group-tag with passive in return-struct:"+

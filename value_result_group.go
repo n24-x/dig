@@ -21,21 +21,12 @@ type valueResultGroup struct {
 	// instead of as a group. Requires the value's slice to be a group. If set,
 	// valueType is the element type rather than the group (slice) type.
 	flatten bool
-
-	asTypes []reflect.Type
 }
 
 var _ func(reflect.StructField) (valueResultGroup, error) = newValueResultGroup
 
 func (rg valueResultGroup) Provides() []resourceType {
-	keys := []resourceType{rg.key()}
-	for _, typ := range rg.asTypes {
-		keys = append(keys, resourceType{
-			valueType: typ,
-			groupName: rg.groupName,
-		})
-	}
-	return keys
+	return []resourceType{rg.key()}
 }
 
 func (rg valueResultGroup) Extract(w valueWriter, v reflect.Value) {
@@ -52,7 +43,7 @@ func (rg valueResultGroup) Extract(w valueWriter, v reflect.Value) {
 }
 
 func (rg valueResultGroup) DotResults() []*dot.Result {
-	dotResults := []*dot.Result{
+	return []*dot.Result{
 		{
 			Node: &dot.Node{
 				ValueType: rg.valueType,
@@ -60,21 +51,6 @@ func (rg valueResultGroup) DotResults() []*dot.Result {
 			},
 		},
 	}
-
-	if len(rg.asTypes) > 0 {
-		for _, typ := range rg.asTypes {
-			dotResults = append(dotResults,
-				&dot.Result{
-					Node: &dot.Node{
-						ValueType: typ,
-						GroupName: rg.groupName,
-					},
-				},
-			)
-		}
-	}
-
-	return dotResults
 }
 
 func newValueResultGroup(sf reflect.StructField) (valueResultGroup, error) {

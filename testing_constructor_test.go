@@ -259,12 +259,20 @@ func TestNewConstructorNodeBadCases(t *testing.T) {
 			wantErr: "does not implement",
 		},
 		{
-			// flatten and As both decide the group key. Rejecting the pair
-			// keeps reflect.Type.Elem off an interface type, which panics.
+			// A group is read as the whole slice, so As would either key the
+			// group away from the one consumers read, or (with flatten) leave
+			// nothing to cast. Reject the pair rather than key it away silently.
 			name:    "GroupName with flatten and As is rejected",
 			input:   func() []*typ1 { return nil },
 			opts:    ConstructorOptions{result: resultOptions{groupName: "rain,flatten", asTypes: []any{new(any)}}},
-			wantErr: "cannot use dig.As with a flattened group",
+			wantErr: "cannot use dig.As with a group",
+		},
+		{
+			// Same rule without flatten: the original group would disappear.
+			name:    "GroupName with As is rejected",
+			input:   func() *typ1 { return nil },
+			opts:    ConstructorOptions{result: resultOptions{groupName: "rain", asTypes: []any{new(any)}}},
+			wantErr: "cannot use dig.As with a group",
 		},
 		{
 			name:    "no results at all",
