@@ -7,6 +7,19 @@ import (
 	"github.com/n24-x/dig/internal/digreflect"
 )
 
+var _ interface {
+	Decorate(dtor any, opts ...Option[*DecorateOptions]) error
+} = (*Container)(nil)
+
+var _ interface {
+	Decorate(dtor any, opts ...Option[*DecorateOptions]) error
+	decorate(dtor any, opts DecorateOptions) error
+	registerDecorator(node *decoratorNode)
+	checkDecorate(rs []resourceType) string
+} = (*Scope)(nil)
+
+var _ func(any) error = decoratorValidate
+
 func (ct *Container) Decorate(dtor any, opts ...Option[*DecorateOptions]) error {
 	return ct.rootScope.Decorate(dtor, opts...)
 }
@@ -128,11 +141,3 @@ func (sp *Scope) checkDecorate(rs []resourceType) string {
 
 	return ""
 }
-
-var _ interface {
-	Decorate(dtor any, opts ...Option[*DecorateOptions]) error
-} = (*Container)(nil)
-
-var _ interface {
-	Decorate(dtor any, opts ...Option[*DecorateOptions]) error
-} = (*Scope)(nil)
