@@ -6,10 +6,6 @@ import (
 	"github.com/n24-x/dag-go"
 )
 
-// nodeColor is a node's mark during the walk.
-//
-// It is a distinct type rather than a bare uint8 so that assigning anything
-// else to keyWalk.state is a compile error.
 type nodeColor uint8
 
 const (
@@ -18,13 +14,8 @@ const (
 	_black                  // fully processed and already emitted
 )
 
-// keyWalk computes the order in which constructors and decorators have to run,
-// starting from a function's params.
-//
-// It walks the graph with a three-colour depth-first search: white nodes are
-// undiscovered, gray nodes sit on the current path, black nodes are done and
-// emitted. Nodes are emitted on the way out, so the result is a post-order and
-// every dependency precedes its consumer.
+// keyWalk computes the execution order of constructors and decorators from a
+// function's params using a three-colour depth-first search (DFS) in post-order.
 //
 // The walk resolves one key at a time instead of following the dag's edges. A
 // decorator is not a dag node, so edges alone cannot see it, and the decorator
@@ -53,9 +44,18 @@ type keyWalk struct {
 	// gray hit is a cycle either way; whether the path came in through one of
 	// these is what separates a wiring mistake from a broken graph.
 	optionalPath []optionalEdge
+
+	// currentDecorator is the decorator whose params are being resolved right
+	// now, or nil when the walk is not inside one.
+	//
+	// It tells two gray decorators apart. The one we are inside reads the key
+	// it takes over on purpose and has to see the raw value; any other gray
+	// decorator means two of them need each other's output and neither can go
+	// first.
+	currentDecorator *decoratorNode
 }
 
-// optionalEdge is a dependency a consumer asked for but can live without.
+// optionalEdge corresponds to optional dependency
 type optionalEdge struct {
 	// consumer is the node that asked, or nil for the function being set up.
 	consumer fmt.Stringer
@@ -72,40 +72,8 @@ func newKeyWalk(sp *Scope) *keyWalk {
 	}
 }
 
-// resolve schedules whatever has to run before key can be read, and reports
-// whether the key can be built at all.
-//
-// A decorator alone does not make a key buildable: it rewrites what a
-// constructor produced, so a key with a decorator but no constructor is still
-// missing.
-func (w *keyWalk) resolve(key resourceType) (bool, error) {
-	ctors := w.sp.lookupConstructor(key)
-	if len(ctors) == 0 {
-		return false, nil
-	}
-
-	// A decorator rewrites the value the constructors build, so it is emitted
-	// after them; its own params pull those constructors in through the
-	// recursion, which is also why the loop below is skipped when one is found.
-	//
-	// While a decorator sits on the path (_gray) it is skipped and the raw
-	// providers are scheduled instead. That is what lets `func(b *B) *A` share
-	// a graph with a B that needs an A: the decorator's own read of A sees the
-	// value before it was decorated.
-	if d := w.sp.lookupDecorator(key); d != nil && w.state[d] != _gray {
-		return true, w.visitDecorator(d)
-	}
-
-	for _, cn := range ctors {
-		if err := w.visit(cn); err != nil {
-			return true, err
-		}
-	}
-	return true, nil
-}
-
-// resolveRequired is resolve for a key the graph has to guarantee: nobody
-// providing it is a mistake the user has to fix.
+// resolveRequired resolves a required key.
+// If no provider exists, it returns an error.
 func (w *keyWalk) resolveRequired(key resourceType) error {
 	found, err := w.resolve(key)
 	if err != nil {
@@ -127,6 +95,51 @@ func (w *keyWalk) resolveOptional(consumer fmt.Stringer, key resourceType) error
 	_, err := w.resolve(key)
 	w.optionalPath = w.optionalPath[:len(w.optionalPath)-1]
 	return err
+}
+
+// resolve schedules whatever has to run before key can be read, and reports
+// whether the key can be built at all.
+//
+// A decorator alone does not make a key buildable: it rewrites what a
+// constructor produced, so a key with a decorator but no constructor is still
+// missing.
+func (w *keyWalk) resolve(key resourceType) (bool, error) {
+	ctors := w.sp.lookupConstructor(key)
+	if len(ctors) == 0 {
+		return false, nil
+	}
+
+	// A decorator rewrites the value the constructors build, so it is emitted
+	// after them; its own params pull those constructors in through the
+	// recursion, which is also why the loop below is skipped when one is found.
+	if d := w.sp.lookupDecorator(key); d != nil {
+		switch {
+		case d == w.currentDecorator:
+			// The decorator is reading the key it takes over, which is the
+			// ordinary case: a decorator normally takes the value it replaces
+			// as its own input. It has to see the value before decorating, so
+			// skip the decorator and let the loop below schedule the raw
+			// providers.
+
+		case w.state[d] == _gray:
+			// Still on the path and not the one we are inside: two decorators
+			// need each other's output, so neither of them can go first.
+			return true, fmt.Errorf(
+				"dig: decorator %v needs %v, but decorator %v takes that over "+
+					"and is still running: resolve the cycle",
+				w.currentDecorator, key, d)
+
+		default:
+			return true, w.visitDecorator(d)
+		}
+	}
+
+	for _, cn := range ctors {
+		if err := w.visit(cn); err != nil {
+			return true, err
+		}
+	}
+	return true, nil
 }
 
 // visit emits cn after everything it depends on.
@@ -160,15 +173,17 @@ func (w *keyWalk) visit(cn *constructorNode) error {
 
 // visitDecorator emits dn after the keys its params need.
 func (w *keyWalk) visitDecorator(dn *decoratorNode) error {
-	switch w.state[dn] {
-	case _black: // already emitted, nothing to do
+	if w.state[dn] == _black { // already emitted, nothing to do
 		return nil
-	case _gray: // reached again while still on the path
-		return w.cycleError(dn)
-	case _white:
-		// Fresh node: fall through to the walk below.
 	}
+	// A gray decorator never gets here: resolve either lets it through because
+	// it is the one being visited, or reports it as a cycle.
 	w.state[dn] = _gray
+
+	// While this decorator's params resolve, it is the one reading its own key.
+	previous := w.currentDecorator
+	w.currentDecorator = dn
+	defer func() { w.currentDecorator = previous }()
 
 	reqs := dn.paramList.Requires()
 	for _, key := range reqs.required {
