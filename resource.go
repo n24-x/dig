@@ -167,7 +167,7 @@ func (sp *Scope) checkResource(rs []resourceType) string {
 		if typ.groupName != "" {
 			continue
 		}
-		if sp.hasOwnConstructor(typ) {
+		if sp.hasLocalConstructor(typ) {
 			return fmt.Sprintf("result type %s has already been added", typ)
 		}
 	}
