@@ -85,15 +85,13 @@ func (w *keyWalk) resolveRequired(key resourceType) error {
 	return nil
 }
 
-// resolveOptional is resolve for a key the caller can live without.
-//
-// It still has to resolve when somebody provides the key, so that its
-// providers run; the edge is remembered while that happens, so a cycle closed
-// through it can name the dependency to drop.
+// resolveOptional resolves aoptional key. If a provider exists, it resolves
+// the key and tracks the optional dependency so that a cycle involving it can
+// be identified.
 func (w *keyWalk) resolveOptional(consumer fmt.Stringer, key resourceType) error {
 	w.optionalPath = append(w.optionalPath, optionalEdge{consumer: consumer, key: key})
 	_, err := w.resolve(key)
-	w.optionalPath = w.optionalPath[:len(w.optionalPath)-1]
+	w.optionalPath = w.optionalPath[:len(w.optionalPath)-1] // remove
 	return err
 }
 
@@ -106,7 +104,7 @@ func (w *keyWalk) resolveOptional(consumer fmt.Stringer, key resourceType) error
 func (w *keyWalk) resolve(key resourceType) (bool, error) {
 	ctors := w.sp.lookupConstructor(key)
 	if len(ctors) == 0 {
-		return false, nil
+		return false, nil // TODO why
 	}
 
 	// A decorator rewrites the value the constructors build, so it is emitted
@@ -142,7 +140,7 @@ func (w *keyWalk) resolve(key resourceType) (bool, error) {
 	return true, nil
 }
 
-// visit emits cn after everything it depends on.
+// visit appends cn to the order after visiting all its dependencies.
 func (w *keyWalk) visit(cn *constructorNode) error {
 	switch w.state[cn] {
 	case _black: // already emitted, nothing to do
