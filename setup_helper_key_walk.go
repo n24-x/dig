@@ -104,7 +104,7 @@ func (w *keyWalk) resolveOptional(consumer fmt.Stringer, key resourceType) error
 func (w *keyWalk) resolve(key resourceType) (bool, error) {
 	ctors := w.sp.lookupConstructor(key)
 	if len(ctors) == 0 {
-		return false, nil // TODO why
+		return false, nil
 	}
 
 	// A decorator rewrites the value the constructors build, so it is emitted
