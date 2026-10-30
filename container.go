@@ -11,6 +11,8 @@ var (
 	_ func() Option[*Container] = DryRun
 	_ func() Option[*Container] = RecoverFromPanics
 	_ func() Option[*Container] = DeferAcyclicVerification
+
+	_ interface{ RootScope() *Scope } = (*Container)(nil)
 )
 
 func New(opts ...Option[*Container]) *Container {
@@ -59,4 +61,8 @@ func DeferAcyclicVerification() Option[*Container] {
 		}
 		ct.rootScope.deferAcyclicVerification = true
 	}
+}
+
+func (ct *Container) RootScope() *Scope {
+	return ct.rootScope
 }
