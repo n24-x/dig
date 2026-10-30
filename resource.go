@@ -58,31 +58,61 @@ func (sp *Scope) Resource(ctor any, opts ...Option[*ResourceOptions]) error {
 	return nil
 }
 
-func (sp *Scope) resource(ctor any, options ResourceOptions) error {
+func (sp *Scope) resource(ctor any, opts ResourceOptions) error {
+	target := sp
+	switch {
+	case opts.global && opts.registeredScope != nil:
+		return newErrInvalidInput(
+			"cannot use Global and Export together", nil)
+	case opts.global:
+		target = sp.lookupRootScope()
+	case opts.registeredScope != nil:
+		target = opts.registeredScope
+
+		// Any scope of this container is a valid home, not just an ancestor.
+		// Exporting sideways or downwards puts the value where that subtree can
+		// read it while this one cannot -- a module building something for
+		// another module without publishing it to the root, and without
+		// occupying the root's namespace for that key.
+		//
+		// A scope of another container is not. The node would live in a tree
+		// whose Setup never asked for it, and its dependencies would be read
+		// through a scope belonging to this one: two graphs joined by a single
+		// pointer, which no later error could explain.
+		if target.lookupRootScope() != sp.lookupRootScope() {
+			return newErrInvalidInput(fmt.Sprintf(
+				"Export(%q): the target scope belongs to a different container than scope %q",
+				target.name, sp.name), nil)
+		}
+	}
+
 	node, err := newConstructorNode(ctor, ConstructorOptions{
 		result: resultOptions{
-			nameTag:  options.nameTag,
-			groupTag: options.groupTag,
-			asTypes:  options.asTypes,
+			nameTag:  opts.nameTag,
+			groupTag: opts.groupTag,
+			asTypes:  opts.asTypes,
 		},
-		location: options.location,
+		location:        opts.location,
+		buildScope:      sp,
+		registeredScope: target,
 	})
 	if err != nil {
 		return err
 	}
 
-	node.observer = options.observer
-
-	if reason := sp.checkResource(node.Provides()); reason != "" {
+	if reason := target.checkResource(node.Provides()); reason != "" {
 		return newErrInvalidInput(reason, nil)
 	}
 
-	id, err := sp.registerNode(node)
+	id, err := target.registerNode(node)
 	if err != nil {
 		return err
 	}
 
-	if info := options.info; info != nil {
+	// set observer after register
+	node.observer = opts.observer
+
+	if info := opts.info; info != nil {
 		info.DagID = DagID(id)
 		info.Params = paramInfos(node.ParamList().DotParams())
 		info.Results = resultInfos(node.ResultList().DotResults())
@@ -151,6 +181,8 @@ var (
 	_ func(uintptr) Option[*ResourceOptions]              = LocationForPC
 	_ func(...any) Option[*ResourceOptions]               = As
 	_ func(*ResourceReceiptInfo) Option[*ResourceOptions] = ResourceReceipt
+	_ func() Option[*ResourceOptions]                     = Global
+	_ func(*Scope) Option[*ResourceOptions]               = Export
 	_ func(Observer) Option[*ResourceOptions]             = ResourceObserver
 )
 
@@ -231,6 +263,60 @@ func ResourceReceipt(info *ResourceReceiptInfo) Option[*ResourceOptions] {
 			return
 		}
 		ro.info = info
+	}
+}
+
+// Global makes the resource visible to every scope of the container by
+// registering it in the root scope.
+//
+// It is the shorthand for exporting to the top of the tree, so everything
+// [Export] says about dependencies and about the declaring scope applies here
+// too -- with the root as the target, the declaring scope can still read the
+// value, because the root is on its path.
+//
+// Global and [Export] are mutually exclusive; combining them is an error.
+func Global() Option[*ResourceOptions] {
+	return func(ro *ResourceOptions) {
+		if ro == nil {
+			return
+		}
+		ro.global = true
+	}
+}
+
+// Export makes the resource visible to the given scope and to the scopes below
+// it, and to nothing else: the node is registered in that scope's graph, and a
+// lookup only ever walks up from where it starts.
+//
+// What Export moves is where the value lives, never what the constructor can
+// see. Dependencies are still read from the scope Resource was called on, so a
+// module can export something built out of its own private resources without
+// publishing those as well.
+//
+// The cost of moving the value out is that the declaring scope stops reading
+// it. A scope cannot see a sibling or a sibling's subtree, so exporting
+// sideways or downwards builds the resource for that subtree and not for
+// yourself:
+//
+//	root
+//	 ├── a
+//	 │    └── b   ← Resource(func() *T, Export(c))
+//	 └── c        ← *T is readable here and below, not in a or b
+//
+// b no longer reads *T, and a constructor in b that asks for it reports it
+// missing. Exporting to the declaring scope itself is the same as not
+// exporting at all, and so is a nil target: there is nowhere to move the value
+// to, so it stays where Resource was called.
+//
+// The scope must belong to the same container. Exporting into a scope of
+// another container is rejected: the node would sit in a graph whose Setup
+// never asked for it, while its dependencies came from this one.
+func Export(to *Scope) Option[*ResourceOptions] {
+	return func(ro *ResourceOptions) {
+		if ro == nil {
+			return
+		}
+		ro.registeredScope = to
 	}
 }
 

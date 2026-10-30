@@ -14,19 +14,18 @@ import (
 type constructorNode struct {
 	constructor any
 	ctype       reflect.Type
-
-	location *digreflect.Func
+	paramList   paramList
+	resultList  resultList
 
 	// dotID is the constructor's function pointer, used as its key in DOT
 	// bookkeeping. It is not the DAG node number; that comes from dag.Add.
-	dotID dot.ConstructorID
-
-	paramList  paramList
-	resultList resultList
+	dotID           dot.ConstructorID
+	location        *digreflect.Func
+	buildScope      *Scope
+	registeredScope *Scope
+	observer        Observer
 
 	called bool
-
-	observer Observer
 }
 
 var (
@@ -71,12 +70,14 @@ func newConstructorNode(ctor any, opts ConstructorOptions) (*constructorNode, er
 	}
 
 	cn := &constructorNode{
-		constructor: ctor,
-		ctype:       ctype,
-		location:    location,
-		dotID:       dot.ConstructorID(cptr),
-		paramList:   paramList,
-		resultList:  resultList,
+		constructor:     ctor,
+		ctype:           ctype,
+		location:        location,
+		dotID:           dot.ConstructorID(cptr),
+		paramList:       paramList,
+		resultList:      resultList,
+		buildScope:      opts.buildScope,
+		registeredScope: opts.registeredScope,
 	}
 	return cn, nil
 }
