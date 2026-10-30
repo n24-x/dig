@@ -155,6 +155,12 @@ func TestNewConstructorNodeGoodCases(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			// These cases only read Requires and Provides, so one scope for both
+			// fields is enough; they never run the node.
+			scope := newScope()
+			tt.opts.buildScope = scope
+			tt.opts.registeredScope = scope
+
 			n, err := newConstructorNode(tt.input, tt.opts)
 			require.NoError(t, err)
 
@@ -324,6 +330,13 @@ func TestNewConstructorNodeBadCases(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			// Every case here is rejected while parsing, before the scopes are
+			// ever read; they are supplied so the call site matches the other
+			// test and so the invariant does not mask the expected error.
+			scope := newScope()
+			tt.opts.buildScope = scope
+			tt.opts.registeredScope = scope
+
 			_, err := newConstructorNode(tt.input, tt.opts)
 			require.ErrorContains(t, err, tt.wantErr)
 		})
