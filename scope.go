@@ -1,6 +1,7 @@
 package dig
 
 import (
+	"fmt"
 	"math/rand/v2"
 	"reflect"
 
@@ -40,6 +41,8 @@ var _ func() *Scope = newScope
 
 var _ interface {
 	Setup(function any, opts ...Option[*SetupOptions]) error
+	NewChildScope(name string) *Scope
+	lookupRootScope() *Scope
 	lookupValue(resourceType) (reflect.Value, bool)
 	lookupGroup(key resourceType) []reflect.Value
 	lookupConstructor(key resourceType) []*constructorNode
@@ -59,6 +62,52 @@ func newScope() *Scope {
 		decoratedGroups: make(map[resourceType]reflect.Value),
 		fnCaller:        defaultFnCaller,
 	}
+}
+
+// NewChildScope returns a new scope whose parent is sp.
+//
+// The child reads everything sp provides and decorates; sp never reads anything
+// the child registers, and neither do sp's other children. sp itself is not
+// modified by this call, so building a tree costs one allocation per node.
+//
+// Only the way user code is called is inherited -- the fnCaller, the panic
+// recovery and the deferred cycle check. Everything a scope stores starts
+// empty: the graph, the decorators, the values and the groups. That emptiness
+// is what makes a scope private by default; visibility is decided later, when
+// a lookup walks up parentScope, not here.
+//
+// NewChildScope panics when name is empty or is the root scope's name.
+// Diagnostics print scope names, so a nameless scope would carry no label at
+// all, and a second scope answering to "root" would make that label ambiguous.
+func (sp *Scope) NewChildScope(name string) *Scope {
+	switch {
+	case name == "":
+		panic("dig: NewChildScope: the name must not be empty, it labels the " +
+			"scope in diagnostics")
+	case name == _rootScopeName:
+		panic(fmt.Sprintf(
+			"dig: NewChildScope(%q): that name is reserved for the root scope", name))
+	}
+
+	child := newScope()
+	child.name = name
+	child.parentScope = sp
+	child.fnCaller = sp.fnCaller
+	child.recoverFromPanics = sp.recoverFromPanics
+	child.deferAcyclicVerification = sp.deferAcyclicVerification
+	return child
+}
+
+// lookupRootScope returns the top of the tree sp belongs to: the scope whose
+// parentScope is nil, and the one an exported resource is registered into.
+func (sp *Scope) lookupRootScope() *Scope {
+	root := sp
+	parent := sp.parentScope
+	for parent != nil {
+		root = parent
+		parent = parent.parentScope
+	}
+	return root
 }
 
 // lookupConstructor returns the constructors that provide key, if any.
