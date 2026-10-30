@@ -17,6 +17,7 @@ func New(opts ...Option[*Container]) *Container {
 	ct := &Container{
 		rootScope: newScope(),
 	}
+	ct.rootScope.name = _rootScopeName
 
 	for _, opt := range opts {
 		opt(ct)

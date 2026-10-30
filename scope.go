@@ -7,8 +7,11 @@ import (
 	dag "github.com/n24-x/dag-go"
 )
 
+const _rootScopeName = "root"
+
 type Scope struct {
-	name string
+	name        string
+	parentScope *Scope
 
 	dag        *dag.DefaultGraph[resourceType] // store ctor
 	decorators map[resourceType]*decoratorNode // store decorator
@@ -24,9 +27,6 @@ type Scope struct {
 	recoverFromPanics        bool
 	deferAcyclicVerification bool
 	needsAcyclicCheck        bool
-
-	// TODO
-	// parentScope *Scope
 }
 
 // fnCaller produces the results of calling fn with args.
