@@ -28,8 +28,8 @@ var _ func(any, *Scope) (*decoratorNode, error) = newDecoratorNode
 
 // newDecoratorNode parses dtor into a decorator node bound to sp.
 //
-// It reads nothing from DecorateOptions: the observer is set by the caller
-// once the registration is accepted, so a rejected decorator never carries
+// It reads nothing from DecorateOptions: the observer is assigned by the
+// caller after registration succeeds, so a rejected decorator never carries
 // one. Everything this node needs to run comes from the function itself.
 func newDecoratorNode(dtor any, sp *Scope) (*decoratorNode, error) {
 	dval := reflect.ValueOf(dtor)

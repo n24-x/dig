@@ -15,8 +15,10 @@ type Option[T any] func(T)
 //
 // TODO change to unexport
 type ConstructorOptions struct {
-	result   resultOptions
-	location *digreflect.Func
+	result          resultOptions
+	buildScope      *Scope
+	registeredScope *Scope
+	location        *digreflect.Func
 }
 
 // DecorateOptions holds the accumulated effects of the Option values passed
@@ -39,12 +41,14 @@ type resultOptions struct {
 // ResourceOptions holds the accumulated effects of the ResourceOption values
 // passed to Resource. See [Option] for more info.
 type ResourceOptions struct {
-	nameTag  string
-	groupTag string
-	asTypes  []any
-	location *digreflect.Func
-	info     *ResourceReceiptInfo
-	observer Observer
+	nameTag         string
+	groupTag        string
+	asTypes         []any
+	global          bool
+	registeredScope *Scope
+	location        *digreflect.Func
+	info            *ResourceReceiptInfo
+	observer        Observer
 }
 
 var _ interface{ Validate() error } = (*ResourceOptions)(nil)
