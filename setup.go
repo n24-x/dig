@@ -60,7 +60,7 @@ func (sp *Scope) Setup(function any, opts ...Option[*SetupOptions]) (err error) 
 	}
 
 	for _, node := range order {
-		if err = node.Run(sp); err != nil {
+		if err = node.Run(); err != nil {
 			return err
 		}
 	}
@@ -91,7 +91,10 @@ func (sp *Scope) Setup(function any, opts ...Option[*SetupOptions]) (err error) 
 	return nil
 }
 
-type runner interface{ Run(*Scope) error }
+// runner is a node that can run as part of a Setup. Both node kinds know where
+// they run from their own fields, so no scope is passed in: whoever triggered
+// a node has nothing to say about its view.
+type runner interface{ Run() error }
 
 // runOrder returns the nodes that must run before function's arguments can be
 // assembled, in the order they have to run. A returned node is a constructor

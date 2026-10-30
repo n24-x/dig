@@ -79,6 +79,9 @@ func newConstructorNode(ctor any, opts ConstructorOptions) (*constructorNode, er
 		buildScope:      opts.buildScope,
 		registeredScope: opts.registeredScope,
 	}
+	if opts.buildScope == nil || opts.registeredScope == nil {
+		panic("dig: newConstructorNode: both scopes are required")
+	}
 	return cn, nil
 }
 
@@ -101,14 +104,15 @@ func (cn *constructorNode) DotID() dot.ConstructorID   { return cn.dotID }
 func (cn *constructorNode) CType() reflect.Type        { return cn.ctype }
 
 // Run builds the constructor's arguments, calls it, and commits the results to
-// sp. A constructor runs at most once: later calls are no-ops.
-func (cn *constructorNode) Run(sp *Scope) (err error) {
+// registeredScope. A constructor runs at most once: later calls are no-ops.
+func (cn *constructorNode) Run() (err error) {
 	if cn.called {
 		return nil
 	}
+	sp := cn.buildScope
 
 	// The dependencies have already been built, so assembling the args now is
-	// just a read from the scope.
+	// just a read from the build scope.
 	args, err := cn.paramList.Args(sp)
 	if err != nil {
 		return errArgumentsFailed{Func: cn.location, Reason: err}
@@ -151,7 +155,7 @@ func (cn *constructorNode) Run(sp *Scope) (err error) {
 		}
 	}
 
-	staging.Commit(sp)
+	staging.Commit(cn.registeredScope)
 	cn.called = true
 	return nil
 }

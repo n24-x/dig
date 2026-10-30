@@ -73,7 +73,7 @@ func newDecoratorNode(dtor any, sp *Scope) (*decoratorNode, error) {
 // Results go through staging and are committed only after they were stored
 // without error, so a decorator that returns an error leaves the scope
 // untouched instead of half decorated.
-func (dn *decoratorNode) Run(sp *Scope) (err error) {
+func (dn *decoratorNode) Run() (err error) {
 	if dn.called {
 		return nil
 	}
