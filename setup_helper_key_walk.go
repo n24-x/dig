@@ -36,6 +36,12 @@ const (
 type keyWalk struct {
 	state map[runner]nodeColor // one table for both node kinds
 
+	// path is the DFS stack: the nodes currently gray, outermost first. It
+	// exists so a cycle can be reported as the sequence that closes it rather
+	// than as a single node; the stack is pushed and popped by visit and
+	// visitDecorator, so it always mirrors the recursion.
+	path []runner
+
 	// order holds the resolved nodes in run order. The walk reaches each one's
 	// params anyway, so keeping the nodes here saves callers from looking them
 	// up again.
@@ -164,6 +170,8 @@ func (w *keyWalk) visit(cn *constructorNode) error {
 		// Fresh node: fall through to the walk below.
 	}
 	w.state[cn] = _gray
+	w.path = append(w.path, cn)
+	defer func() { w.path = w.path[:len(w.path)-1] }()
 
 	// The node's params are read from the scope Resource was called on, not from
 	// whoever triggered this visit and not from the scope the node happens to be
@@ -194,6 +202,8 @@ func (w *keyWalk) visitDecorator(dn *decoratorNode) error {
 	// A gray decorator never gets here: resolve either lets it through because
 	// it is the one being visited, or reports it as a cycle.
 	w.state[dn] = _gray
+	w.path = append(w.path, dn)
+	defer func() { w.path = w.path[:len(w.path)-1] }()
 
 	// While this decorator's params resolve, it is the one reading its own key.
 	previous := w.currentDecorator
@@ -242,14 +252,17 @@ func (w *keyWalk) err() error {
 //
 // How the path got here decides how this reads. Through an optional edge it is
 // a wiring mistake: the user asked for something that cannot be satisfied, and
-// naming that edge is the whole fix. Without one it can only be a cycle that
-// dag.Add would have rejected, which means DeferAcyclicVerification let it
-// through — an invariant violation, not something the user can act on.
+// naming that edge is the whole fix. Without one the cycle is really there, and
+// the only question is why registration did not catch it: it cannot see across
+// scopes, and [DeferAcyclicVerification] asks it not to look. Both are things
+// the user configured, so the result is a configuration error they can act on,
+// reported the same way as the one registration produces.
 func (w *keyWalk) cycleError(target runner) error {
 	if len(w.optionalPath) == 0 {
-		// This error only for developers, should never be encountered by users.
-		return fmt.Errorf(
-			"dig: internal error: circular dependency detected while ordering %v", target)
+		return errCycleDetected{
+			Message: "cycle detected",
+			Path:    w.cyclePath(target),
+		}
 	}
 
 	// The innermost edge is the one that closed the loop.
@@ -261,4 +274,23 @@ func (w *keyWalk) cycleError(target runner) error {
 	return fmt.Errorf(
 		"dig: %v optionally needs %v, but following that edge leads back to %v: "+
 			"resolve the cycle", consumer, edge.key, target)
+}
+
+// cyclePath names the nodes from where target first went gray around to target
+// again. target is on the path by construction: it is still gray, which is what
+// sent the walk here.
+func (w *keyWalk) cyclePath(target runner) []string {
+	start := 0
+	for i, n := range w.path {
+		if n == target {
+			start = i
+			break
+		}
+	}
+
+	names := make([]string, 0, len(w.path)-start+1)
+	for _, n := range w.path[start:] {
+		names = append(names, fmt.Sprint(n))
+	}
+	return append(names, fmt.Sprint(target))
 }

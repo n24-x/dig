@@ -149,12 +149,22 @@ func (e errResourceAddFailed) Format(w fmt.State, c rune) {
 	formatError(e, w, c)
 }
 
-// errCycleDetected is returned when adding a resource would close a cycle in
-// the graph.
+// errCycleDetected reports a cycle in the dependency graph.
+//
+// Two different paths produce it. Registration catches a cycle as it is
+// introduced, and the dag reports the nodes on it through Cause. The walk
+// catches one registration could not see -- across scopes, or with
+// [DeferAcyclicVerification] in effect -- and names the nodes it went through
+// in Path.
 type errCycleDetected struct {
 	Message string
 
-	// Cause is the *dag.CycleError that triggered this error.
+	// Path names the nodes of the cycle in walk order, ending with the node the
+	// walk came back to. Empty when the cycle came from the dag, whose Cause
+	// already describes it.
+	Path []string
+
+	// Cause is the *dag.CycleError that triggered this error, if any.
 	Cause error
 }
 
@@ -162,6 +172,11 @@ func (e errCycleDetected) Error() string { return fmt.Sprint(e) }
 
 func (e errCycleDetected) writeMessage(w io.Writer, _ string) {
 	_, _ = fmt.Fprint(w, e.Message)
+
+	if len(e.Path) > 0 {
+		_, _ = fmt.Fprintf(w, ": %s", strings.Join(e.Path, " -> "))
+	}
+
 	if e.Cause == nil {
 		return
 	}
