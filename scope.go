@@ -162,13 +162,20 @@ func (sp *Scope) hasLocalConstructor(key resourceType) bool {
 	return len(sp.dag.Provide(key)) > 0
 }
 
-// lookupDecorator returns the decorator that supplies key, if any.
+// lookupDecorator returns the decorator that applies to key, if any, walking up
+// parentScope.
 //
-// Multi-scope lookup (walking up parentScope) belongs to the scope-tree work;
-// it will live inside this method so the signature does not change.
+// The nearest decoration wins, because that is the one a reader finally sees.
+// Decorations above it still run: they form a chain, each taking the value the
+// one above produced, and [keyWalk.resolve] walks that chain one link at a time
+// by skipping the decorator it is inside and asking again from just above it.
 func (sp *Scope) lookupDecorator(key resourceType) *decoratorNode {
-	// TODO walking up parentScope
-	return sp.decorators[key]
+	for s := sp; s != nil; s = s.parentScope {
+		if d := s.decorators[key]; d != nil {
+			return d
+		}
+	}
+	return nil
 }
 
 // lookupValue returns the value for key, if any, walking up parentScope.

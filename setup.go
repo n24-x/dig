@@ -102,16 +102,19 @@ type runner interface{ Run() error }
 //
 // See [keyWalk] for how the order is computed.
 func (sp *Scope) runOrder(funcPL paramList) ([]runner, error) {
-	w := newKeyWalk(sp)
+	w := newKeyWalk(sp.dag.Count())
 
+	// The function being set up reads its params from sp, the scope it was
+	// handed to. That is the only view this walk starts with; every node it
+	// reaches switches to its own.
 	reqs := funcPL.Requires()
 	for _, key := range reqs.required {
-		if err := w.resolveRequired(key); err != nil {
+		if err := w.resolveRequired(sp, key); err != nil {
 			return nil, err
 		}
 	}
 	for _, key := range reqs.optional {
-		if err := w.resolveOptional(nil, key); err != nil { // nil: the function being set up
+		if err := w.resolveOptional(sp, nil, key); err != nil { // nil: the function being set up
 			return nil, err
 		}
 	}
