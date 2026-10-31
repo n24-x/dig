@@ -26,8 +26,14 @@ const (
 // keeps its zero value. An optional dep has no dag edge, so following one can
 // close a loop that dag.Add never saw; that is reported as a wiring mistake
 // rather than as the invariant violation a real cycle is.
+//
+// Every lookup is made through a scope, and that scope is never "the one being
+// set up". A key is read through the view of whoever reads it: a constructor's
+// params from the scope Resource was called on, a decorator's from the scope it
+// decorates in, and the function being set up from the scope Setup ran on. The
+// walk keeps no scope of its own, so there is no second view to fall back on by
+// accident.
 type keyWalk struct {
-	sp    *Scope
 	state map[runner]nodeColor // one table for both node kinds
 
 	// order holds the resolved nodes in run order. The walk reaches each one's
@@ -62,20 +68,19 @@ type optionalEdge struct {
 	key      resourceType
 }
 
-func newKeyWalk(sp *Scope) *keyWalk {
-	count := sp.dag.Count()
+// newKeyWalk returns a walk sized for a scope holding count nodes.
+func newKeyWalk(count int) *keyWalk {
 	return &keyWalk{
-		sp:    sp,
 		state: make(map[runner]nodeColor, count),
 		order: make([]runner, 0, count),
 		seen:  make(map[resourceType]struct{}),
 	}
 }
 
-// resolveRequired resolves a required key.
-// If no provider exists, it returns an error.
-func (w *keyWalk) resolveRequired(key resourceType) error {
-	found, err := w.resolve(key)
+// resolveRequired resolves a required key read through from.
+// If no provider exists, the key is recorded as missing.
+func (w *keyWalk) resolveRequired(from *Scope, key resourceType) error {
+	found, err := w.resolve(from, key)
 	if err != nil {
 		return err
 	}
@@ -85,24 +90,28 @@ func (w *keyWalk) resolveRequired(key resourceType) error {
 	return nil
 }
 
-// resolveOptional resolves aoptional key. If a provider exists, it resolves
-// the key and tracks the optional dependency so that a cycle involving it can
-// be identified.
-func (w *keyWalk) resolveOptional(consumer fmt.Stringer, key resourceType) error {
+// resolveOptional resolves an optional key read through from. If a provider
+// exists, it resolves the key and tracks the optional dependency so that a
+// cycle involving it can be identified.
+func (w *keyWalk) resolveOptional(from *Scope, consumer fmt.Stringer, key resourceType) error {
 	w.optionalPath = append(w.optionalPath, optionalEdge{consumer: consumer, key: key})
-	_, err := w.resolve(key)
+	_, err := w.resolve(from, key)
 	w.optionalPath = w.optionalPath[:len(w.optionalPath)-1] // remove
 	return err
 }
 
-// resolve schedules whatever has to run before key can be read, and reports
-// whether the key can be built at all.
+// resolve schedules whatever has to run before key can be read through from,
+// and reports whether the key can be built at all.
+//
+// from is the view the key is read through, not whoever triggered the walk: the
+// same node can be reached from different places, and its own params are
+// always read from the scope it belongs to.
 //
 // A decorator alone does not make a key buildable: it rewrites what a
 // constructor produced, so a key with a decorator but no constructor is still
 // missing.
-func (w *keyWalk) resolve(key resourceType) (bool, error) {
-	ctors := w.sp.lookupConstructor(key)
+func (w *keyWalk) resolve(from *Scope, key resourceType) (bool, error) {
+	ctors := from.lookupConstructor(key)
 	if len(ctors) == 0 {
 		return false, nil
 	}
@@ -110,26 +119,30 @@ func (w *keyWalk) resolve(key resourceType) (bool, error) {
 	// A decorator rewrites the value the constructors build, so it is emitted
 	// after them; its own params pull those constructors in through the
 	// recursion, which is also why the loop below is skipped when one is found.
-	if d := w.sp.lookupDecorator(key); d != nil {
-		switch {
-		case d == w.currentDecorator:
-			// The decorator is reading the key it takes over, which is the
-			// ordinary case: a decorator normally takes the value it replaces
-			// as its own input. It has to see the value before decorating, so
-			// skip the decorator and let the loop below schedule the raw
-			// providers.
+	d := from.lookupDecorator(key)
+	if d != nil && d == w.currentDecorator {
+		// The decorator is reading the key it takes over, which is the ordinary
+		// case: a decorator normally takes the value it replaces as its own
+		// input. Skipping it is not the whole answer -- a decoration above it
+		// still has to run, because that decoration is this one's input -- so
+		// the search continues from just above the decorator.
+		if up := d.scope.parentScope; up != nil {
+			d = up.lookupDecorator(key)
+		} else {
+			d = nil
+		}
+	}
 
-		case w.state[d] == _gray:
-			// Still on the path and not the one we are inside: two decorators
-			// need each other's output, so neither of them can go first.
+	if d != nil {
+		if w.state[d] == _gray {
+			// Still on the path: two decorators need each other's output, so
+			// neither of them can go first.
 			return true, fmt.Errorf(
 				"dig: decorator %v needs %v, but decorator %v takes that over "+
 					"and is still running: resolve the cycle",
 				w.currentDecorator, key, d)
-
-		default:
-			return true, w.visitDecorator(d)
 		}
+		return true, w.visitDecorator(d)
 	}
 
 	for _, cn := range ctors {
@@ -152,14 +165,18 @@ func (w *keyWalk) visit(cn *constructorNode) error {
 	}
 	w.state[cn] = _gray
 
+	// The node's params are read from the scope Resource was called on, not from
+	// whoever triggered this visit and not from the scope the node happens to be
+	// registered in: an exported constructor lives in the root but was written
+	// next to its dependencies.
 	reqs := cn.ParamList().Requires()
 	for _, key := range reqs.required {
-		if err := w.resolveRequired(key); err != nil {
+		if err := w.resolveRequired(cn.buildScope, key); err != nil {
 			return err
 		}
 	}
 	for _, key := range reqs.optional {
-		if err := w.resolveOptional(cn, key); err != nil {
+		if err := w.resolveOptional(cn.buildScope, cn, key); err != nil {
 			return err
 		}
 	}
@@ -183,14 +200,17 @@ func (w *keyWalk) visitDecorator(dn *decoratorNode) error {
 	w.currentDecorator = dn
 	defer func() { w.currentDecorator = previous }()
 
+	// A decorator reads its params from the scope it decorates in: that is the
+	// scope whose values it rewrites, and the only one whose view of them it can
+	// see.
 	reqs := dn.paramList.Requires()
 	for _, key := range reqs.required {
-		if err := w.resolveRequired(key); err != nil {
+		if err := w.resolveRequired(dn.scope, key); err != nil {
 			return err
 		}
 	}
 	for _, key := range reqs.optional {
-		if err := w.resolveOptional(dn, key); err != nil {
+		if err := w.resolveOptional(dn.scope, dn, key); err != nil {
 			return err
 		}
 	}
