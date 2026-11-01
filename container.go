@@ -59,7 +59,7 @@ func DeferAcyclicVerification() Option[*Container] {
 		if ct == nil {
 			return
 		}
-		ct.rootScope.deferAcyclicVerification = true
+		ct.rootScope.deferCheckDependencyCycle = true
 	}
 }
 

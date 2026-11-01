@@ -25,9 +25,9 @@ type Scope struct {
 
 	fnCaller fnCaller
 
-	recoverFromPanics        bool
-	deferAcyclicVerification bool
-	needsAcyclicCheck        bool
+	recoverFromPanics         bool
+	deferCheckDependencyCycle bool
+	needsCheckDependencyCycle bool
 }
 
 // fnCaller produces the results of calling fn with args.
@@ -94,7 +94,7 @@ func (sp *Scope) NewChildScope(name string) *Scope {
 	child.parentScope = sp
 	child.fnCaller = sp.fnCaller
 	child.recoverFromPanics = sp.recoverFromPanics
-	child.deferAcyclicVerification = sp.deferAcyclicVerification
+	child.deferCheckDependencyCycle = sp.deferCheckDependencyCycle
 	return child
 }
 
