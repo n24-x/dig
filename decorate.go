@@ -132,7 +132,7 @@ func (sp *Scope) checkDecorate(rs []resourceType) string {
 		}
 		if !sp.hasLocalConstructor(key) {
 			return fmt.Sprintf(
-				"cannot decorate %s: scope %q don't have constructor to provide it", key, sp.name)
+				"cannot decorate %s: scope %q has no constructor for it", key, sp.name)
 		}
 	}
 
