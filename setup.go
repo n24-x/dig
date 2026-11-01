@@ -44,14 +44,14 @@ func (sp *Scope) Setup(function any, opts ...Option[*SetupOptions]) (err error) 
 	// graph may still hold a cycle. Verify before anything walks it: keyWalk
 	// would otherwise report the cycle as an internal error, and the point of
 	// deferring is that the user gets the same errCycleDetected either way.
-	if sp.needsAcyclicCheck {
+	if sp.needsCheckDependencyCycle {
 		if err = sp.dag.VerifyAcyclic(); err != nil {
 			return errCycleDetected{
 				Message: "cycle detected",
 				Cause:   err,
 			}
 		}
-		sp.needsAcyclicCheck = false
+		sp.needsCheckDependencyCycle = false
 	}
 
 	order, err := sp.runOrder(funcPL)
