@@ -162,50 +162,39 @@ func (sp *Scope) hasLocalConstructor(key resourceType) bool {
 	return len(sp.dag.Provide(key)) > 0
 }
 
-// lookupDecorator returns the decorator that applies to key, if any, walking up
-// parentScope.
-//
-// The nearest decoration wins, because that is the one a reader finally sees.
-// Decorations above it still run: they form a chain, each taking the value the
-// one above produced, and [keyWalk.resolve] walks that chain one link at a time
-// by skipping the decorator it is inside and asking again from just above it.
+// lookupDecorator returns the decorator that applies to key, if any.
 func (sp *Scope) lookupDecorator(key resourceType) *decoratorNode {
-	for s := sp; s != nil; s = s.parentScope {
-		if d := s.decorators[key]; d != nil {
-			return d
-		}
-	}
-	return nil
+	return sp.decorators[key]
 }
 
 // lookupValue returns the value for key, if any, walking up parentScope.
 //
-// A decoration shadows the provider's value rather than replacing it: the
-// decorated table is consulted first and the provider's value stays behind it,
-// so a scope that registered a decorator but has not run it yet still reads
-// what the constructor built.
+// The nearest scope holding anything for key wins: the walk stops at the first
+// scope with a value, so a scope that provides a type its parent also provides
+// reads its own and the parent keeps reading its own.
 //
-// The walk is two passes, not one. Every scope on the chain is asked for a
-// decorated value before any scope is asked for a plain one, because a
-// decoration anywhere on the chain outranks a plain value anywhere on it. One
-// interleaved pass -- at each scope, decorated then plain -- would stop at a
-// near scope's plain value and never reach an ancestor's decoration, which is
-// exactly the case that makes a decorator invisible to the subtree it was
-// meant for.
+// Within that scope a decoration is read before a plain value. A decoration
+// rewrites what that scope's constructor built, so once the decorator has run
+// its output is what a reader should see; the plain value stays behind it, so a
+// scope that registered a decorator but has not run it yet still finds what the
+// constructor stored.
 //
-// Two consequences worth knowing. A scope that decorates has its decoration
-// read by its whole subtree, so a child's own undecorated provider is hidden
-// by a parent's decoration. And a scope that registered a decorator but has
-// not run it yet falls through to a plain value from further up rather than
-// reading nothing, because the first pass only reports what is stored.
+// One pass, not two. A decoration belongs to the scope that owns the provider --
+// [Scope.lookupDecorator] reads only this scope, and registering one without a
+// constructor here is rejected -- so an ancestor's decoration can never outrank
+// a nearer scope's own value. Asking every scope for a decoration before asking
+// any for a plain value would let a parent's decoration reach across a child's
+// provider and hide a value the child built itself.
+//
+// Shadowing and decoration agree, then: a child that provides a key its parent
+// decorates reads its own undecorated value, because the parent's decoration
+// rewrites the parent's value and there is no path from the child's provider
+// through it.
 func (sp *Scope) lookupValue(typ resourceType) (reflect.Value, bool) {
 	for s := sp; s != nil; s = s.parentScope {
 		if v, ok := s.decoratedValues[typ]; ok {
 			return v, true
 		}
-	}
-
-	for s := sp; s != nil; s = s.parentScope {
 		if v, ok := s.values[typ]; ok {
 			return v, true
 		}
@@ -216,6 +205,12 @@ func (sp *Scope) lookupValue(typ resourceType) (reflect.Value, bool) {
 // lookupGroup returns the members collected for the group key, walking up
 // parentScope.
 //
+// A group is assembled from every scope on the chain, so a decoration of it is
+// read only at the scope that declared it. That decoration is the whole group
+// as its own scope sees it; handing it down would leave the members a nearer
+// scope contributed with nowhere to go. A child therefore collects the raw
+// members, from itself upwards, even when an ancestor decorated the group.
+//
 // A decorated group comes back in the order the decorator returned, and it is
 // the whole group rather than a part of it. The shuffle below exists so that
 // nobody depends on the order providers happened to be registered in; a
@@ -225,25 +220,30 @@ func (sp *Scope) lookupValue(typ resourceType) (reflect.Value, bool) {
 // time it is read. A copy is shuffled rather than the stored slice, otherwise
 // repeated reads would fight over the stored order and later submissions would
 // append to an already scrambled list.
-//
-// Like [Scope.lookupValue], the walk is two passes. A decorated group is the
-// whole group, so the nearest decoration on the chain replaces everything --
-// including the members a nearer scope contributed itself -- and the plain
-// members are only collected when no scope on the chain decorated the group at
-// all. That replacement is why a child adding a member to a parent's decorated
-// group sees the parent's decoration and not its own member.
 func (sp *Scope) lookupGroup(key resourceType) []reflect.Value {
-	for s := sp; s != nil; s = s.parentScope {
-		if whole, ok := s.decoratedGroups[key]; ok {
-			// Spread the stored slice back into members. Rebuilding it from the
-			// element type also normalises a named slice type: a decorator may
-			// return type Handlers []string where the consumer asked for []string.
-			items := make([]reflect.Value, whole.Len())
-			for i := range whole.Len() {
-				items[i] = whole.Index(i)
-			}
-			return items
+	// spread turns a stored decorated group back into individual members.
+	// Rebuilding them one by one also normalises a named slice type: a
+	// decorator may return type Handlers []string where the consumer asked
+	// for []string.
+	spread := func(whole reflect.Value) []reflect.Value {
+		items := make([]reflect.Value, whole.Len())
+		for i := range whole.Len() {
+			items[i] = whole.Index(i)
 		}
+		return items
+	}
+
+	// shuffledCopy returns a shuffled copy of items, leaving items untouched.
+	shuffledCopy := func(items []reflect.Value) []reflect.Value {
+		out := make([]reflect.Value, len(items))
+		for i, j := range rand.Perm(len(items)) {
+			out[i] = items[j]
+		}
+		return out
+	}
+
+	if whole, ok := sp.decoratedGroups[key]; ok {
+		return spread(whole)
 	}
 
 	var members []reflect.Value
@@ -251,15 +251,6 @@ func (sp *Scope) lookupGroup(key resourceType) []reflect.Value {
 		members = append(members, s.valueGroups[key]...)
 	}
 	return shuffledCopy(members)
-}
-
-// shuffledCopy returns a shuffled copy of items, leaving items untouched.
-func shuffledCopy(items []reflect.Value) []reflect.Value {
-	out := make([]reflect.Value, len(items))
-	for i, j := range rand.Perm(len(items)) {
-		out[i] = items[j]
-	}
-	return out
 }
 
 // setValue overwrites the value stored for key.

@@ -122,21 +122,9 @@ func (w *keyWalk) resolve(from *Scope, key resourceType) (bool, error) {
 		return false, nil
 	}
 
-	// A decorator rewrites the value the constructors build, so it is emitted
-	// after them; its own params pull those constructors in through the
-	// recursion, which is also why the loop below is skipped when one is found.
 	d := from.lookupDecorator(key)
 	if d != nil && d == w.currentDecorator {
-		// The decorator is reading the key it takes over, which is the ordinary
-		// case: a decorator normally takes the value it replaces as its own
-		// input. Skipping it is not the whole answer -- a decoration above it
-		// still has to run, because that decoration is this one's input -- so
-		// the search continues from just above the decorator.
-		if up := d.scope.parentScope; up != nil {
-			d = up.lookupDecorator(key)
-		} else {
-			d = nil
-		}
+		d = nil
 	}
 
 	if d != nil {
