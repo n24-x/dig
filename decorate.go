@@ -130,6 +130,10 @@ func (sp *Scope) checkDecorate(rs []resourceType) string {
 		if _, ok := sp.decorators[key]; ok {
 			return fmt.Sprintf("type %s already has decorator", key)
 		}
+		if !sp.hasLocalConstructor(key) {
+			return fmt.Sprintf(
+				"cannot decorate %s: scope %q don't have constructor to provide it", key, sp.name)
+		}
 	}
 
 	return ""
