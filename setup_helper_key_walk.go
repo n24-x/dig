@@ -65,13 +65,6 @@ type keyWalk struct {
 	// decorator means two of them need each other's output and neither can go
 	// first.
 	currentDecorator *decoratorNode
-
-	// skipDecorators makes every key resolve to the constructors behind it,
-	// whatever decoration sits on top. It is set by walks that ask whether a
-	// value can be built rather than which nodes have to run, and a decoration
-	// is not part of that answer: it rewrites a value the constructors already
-	// produce.
-	skipDecorators bool
 }
 
 // optionalEdge corresponds to optional dependency
@@ -88,14 +81,6 @@ func newKeyWalk(count int) *keyWalk {
 		order: make([]runner, 0, count),
 		seen:  make(map[resourceType]struct{}),
 	}
-}
-
-// newConstructorWalk returns a walk that answers every key with the
-// constructors behind it and never enters a decorator.
-func newConstructorWalk(count int) *keyWalk {
-	w := newKeyWalk(count)
-	w.skipDecorators = true
-	return w
 }
 
 // resolveRequired resolves a required key read through from.
@@ -141,7 +126,7 @@ func (w *keyWalk) resolve(from *Scope, key resourceType) (bool, error) {
 	// after them; its own params pull those constructors in through the
 	// recursion, which is also why the loop below is skipped when one is found.
 	d := from.lookupDecorator(key)
-	if w.skipDecorators || (d != nil && d == w.currentDecorator) {
+	if d != nil && d == w.currentDecorator {
 		d = nil
 	}
 
