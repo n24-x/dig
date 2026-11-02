@@ -28,6 +28,22 @@ type Scope struct {
 	cfg scopeConfig
 }
 
+var _ interface {
+	Setup(function any, opts ...Option[*SetupOptions]) error
+	Validate() error
+	NewChildScope(name string) *Scope
+	lookupRootScope() *Scope
+	lookupValue(resourceType) (reflect.Value, bool)
+	lookupGroup(key resourceType) []reflect.Value
+	lookupConstructor(key resourceType) []*constructorNode
+	hasLocalConstructor(key resourceType) bool
+	lookupDecorator(key resourceType) *decoratorNode
+} = (*Scope)(nil)
+
+var _ valueWriter = (*Scope)(nil)
+
+var _ func() *Scope = newScope
+
 // scopeStore is what this scope built: the values its constructors returned and
 // the ones its decorators rewrote, each single value and each group.
 //
@@ -79,21 +95,6 @@ type scopeConfig struct {
 // uses it to skip user code entirely.
 type fnCaller func(fn reflect.Value, args []reflect.Value) (results []reflect.Value)
 
-var _ func() *Scope = newScope
-
-var _ interface {
-	Setup(function any, opts ...Option[*SetupOptions]) error
-	NewChildScope(name string) *Scope
-	lookupRootScope() *Scope
-	lookupValue(resourceType) (reflect.Value, bool)
-	lookupGroup(key resourceType) []reflect.Value
-	lookupConstructor(key resourceType) []*constructorNode
-	hasLocalConstructor(key resourceType) bool
-	lookupDecorator(key resourceType) *decoratorNode
-} = (*Scope)(nil)
-
-var _ valueWriter = (*Scope)(nil)
-
 func newScope() *Scope {
 	return &Scope{
 		registry: scopeRegistry{
@@ -108,6 +109,34 @@ func newScope() *Scope {
 		},
 		cfg: scopeConfig{fnCaller: defaultFnCaller},
 	}
+}
+
+// Validate reports the dependencies this scope cannot satisfy.
+//
+// Every constructor registered here is walked, not only the ones a Setup would
+// reach, so a constructor that nothing asks for yet still has its required
+// dependencies checked. Nothing is run: Validate reads the registry and stops
+// there, so it costs a walk and no user code.
+//
+// A key is answered the way a reader at this scope would answer it, so a
+// dependency an ancestor provides is satisfied and one a child provides is not.
+// Each constructor's own params are read through its build scope, which is the
+// scope Resource was called on: an exported node is checked where it was
+// written, not where it landed.
+//
+// Decorations are outside the check. A decorator takes parameters, but they are
+// resolved only when something reads the key it takes over, and the walk here
+// never does that: it answers every key with the constructors behind it. So a
+// decorator whose own parameters cannot be satisfied passes Validate and fails
+// at the first read instead.
+func (sp *Scope) Validate() error {
+	w := newConstructorWalk(sp.registry.ctors.Count())
+	for _, cn := range sp.localConstructors() {
+		if err := w.visit(cn); err != nil {
+			return err
+		}
+	}
+	return w.err()
 }
 
 // NewChildScope returns a new scope whose parent is sp.
@@ -193,16 +222,6 @@ func (sp *Scope) lookupLocalConstructors(key resourceType) []*constructorNode {
 		nodes = append(nodes, sp.registry.ctors.At(id).(*constructorNode))
 	}
 	return nodes
-}
-
-// hasLocalConstructor reports whether this scope itself provides key.
-//
-// It stops at this scope on purpose. A child scope providing a type its parent
-// already provides is a legal shadow: the child reads its own value and the
-// parent keeps its own, so a registration guard must not look at the ancestor
-// chain. [Scope.lookupConstructor] does look at it, and is the wrong call here.
-func (sp *Scope) hasLocalConstructor(key resourceType) bool {
-	return len(sp.registry.ctors.Provide(key)) > 0
 }
 
 // lookupDecorator returns the decorator that applies to key, if any.
@@ -294,6 +313,32 @@ func (sp *Scope) lookupGroup(key resourceType) []reflect.Value {
 		members = append(members, s.store.valueGroups[key]...)
 	}
 	return shuffledCopy(members)
+}
+
+// localConstructors returns every constructor this scope registered, in
+// registration order.
+//
+// The graph hands out node IDs rather than the nodes, so walking all of them
+// means walking the ID range it assigned. [Scope.lookupLocalConstructors] does
+// not need this: it is asked for one key, and the graph answers with that key's
+// IDs.
+func (sp *Scope) localConstructors() []*constructorNode {
+	count := sp.registry.ctors.Count()
+	nodes := make([]*constructorNode, 0, count)
+	for id := 1; id <= count; id++ {
+		nodes = append(nodes, sp.registry.ctors.At(dag.NodeID(id)).(*constructorNode))
+	}
+	return nodes
+}
+
+// hasLocalConstructor reports whether this scope itself provides key.
+//
+// It stops at this scope on purpose. A child scope providing a type its parent
+// already provides is a legal shadow: the child reads its own value and the
+// parent keeps its own, so a registration guard must not look at the ancestor
+// chain. [Scope.lookupConstructor] does look at it, and is the wrong call here.
+func (sp *Scope) hasLocalConstructor(key resourceType) bool {
+	return len(sp.registry.ctors.Provide(key)) > 0
 }
 
 // setValue overwrites the value stored for key.
