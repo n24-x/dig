@@ -14,11 +14,11 @@ type Scope struct {
 	name        string
 	parentScope *Scope
 
-	// graph is what the scope was told to build; store is what running it
-	// produced. Every traversal reads graph and nothing else, so a walk can see
-	// the whole shape of a container before any of it has run.
-	graph scopeGraph
-	store scopeStore
+	// registry is what the scope was told to build; store is what running it
+	// produced. Every traversal reads registry and nothing else, so a walk can
+	// see the whole shape of a container before any of it has run.
+	registry scopeRegistry
+	store    scopeStore
 
 	// cfg is the whole of what a child takes over from its parent, and nothing
 	// else: it is fixed when the scope is created and only read afterwards.
@@ -42,16 +42,18 @@ type scopeStore struct {
 	decoratedGroups map[resourceType]reflect.Value
 }
 
-// scopeGraph is the registration state of one scope: the constructors it holds,
-// the decorations it applies, and whether the constructors still owe a cycle
-// check.
+// scopeRegistry is the registration state of one scope: the constructors it
+// holds, the decorations it applies, and whether the constructors still owe a
+// cycle check.
 //
 // Nothing here is produced by running user code, which is what separates it
-// from the values: a scope that has never been set up still has a complete
-// graph.
-type scopeGraph struct {
-	dag        *dag.DefaultGraph[resourceType]
-	decorators map[resourceType]*decoratorNode
+// from the store: a scope that has never been set up has already registered
+// everything it will ever register.
+type scopeRegistry struct {
+	// ctors is the graph the constructors are nodes of: Add is what reports a
+	// cycle, and Provide is what a lookup asks for the nodes behind a key.
+	ctors *dag.DefaultGraph[resourceType]
+	dtors map[resourceType]*decoratorNode
 
 	// needsCheckDependencyCycle reports that a constructor went in unchecked
 	// since the last whole-graph scan. Registration sets it and Setup clears it,
@@ -63,7 +65,7 @@ type scopeGraph struct {
 //
 // Everything here is inherited by a child scope and never changes after the
 // container is built. A field that a single scope sets and then clears is state
-// rather than configuration, and belongs on scopeGraph instead.
+// rather than configuration, and belongs on scopeRegistry instead.
 type scopeConfig struct {
 	fnCaller                  fnCaller
 	recoverFromPanics         bool
@@ -94,9 +96,9 @@ var _ valueWriter = (*Scope)(nil)
 
 func newScope() *Scope {
 	return &Scope{
-		graph: scopeGraph{
-			dag:        dag.New[resourceType](),
-			decorators: make(map[resourceType]*decoratorNode),
+		registry: scopeRegistry{
+			ctors: dag.New[resourceType](),
+			dtors: make(map[resourceType]*decoratorNode),
 		},
 		store: scopeStore{
 			values:          make(map[resourceType]reflect.Value),
@@ -114,7 +116,7 @@ func newScope() *Scope {
 // the child registers, and neither do sp's other children. sp itself is not
 // modified by this call, so building a tree costs one allocation per node.
 //
-// Everything in scopeConfig is inherited. Both the graph and the store start
+// Everything in scopeConfig is inherited. Both the registry and the store start
 // empty -- no constructors, no decorations, no values -- and that emptiness is
 // what makes a scope private by default; visibility is decided later, when a
 // lookup walks up parentScope, not here.
@@ -185,10 +187,10 @@ func (sp *Scope) lookupConstructor(key resourceType) []*constructorNode {
 // lookupLocalConstructors returns the constructors this scope itself holds for
 // key, ignoring the ancestors.
 func (sp *Scope) lookupLocalConstructors(key resourceType) []*constructorNode {
-	ids := sp.graph.dag.Provide(key)
+	ids := sp.registry.ctors.Provide(key)
 	nodes := make([]*constructorNode, 0, len(ids))
 	for _, id := range ids {
-		nodes = append(nodes, sp.graph.dag.At(id).(*constructorNode))
+		nodes = append(nodes, sp.registry.ctors.At(id).(*constructorNode))
 	}
 	return nodes
 }
@@ -200,12 +202,12 @@ func (sp *Scope) lookupLocalConstructors(key resourceType) []*constructorNode {
 // parent keeps its own, so a registration guard must not look at the ancestor
 // chain. [Scope.lookupConstructor] does look at it, and is the wrong call here.
 func (sp *Scope) hasLocalConstructor(key resourceType) bool {
-	return len(sp.graph.dag.Provide(key)) > 0
+	return len(sp.registry.ctors.Provide(key)) > 0
 }
 
 // lookupDecorator returns the decorator that applies to key, if any.
 func (sp *Scope) lookupDecorator(key resourceType) *decoratorNode {
-	return sp.graph.decorators[key]
+	return sp.registry.dtors[key]
 }
 
 // lookupValue returns the value for key, if any, walking up parentScope.

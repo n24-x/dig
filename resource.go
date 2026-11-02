@@ -131,12 +131,12 @@ func (sp *Scope) resource(ctor any, opts ResourceOptions) error {
 // which one caught it.
 func (sp *Scope) registerNode(node *constructorNode) (dag.NodeID, error) {
 	if sp.cfg.deferCheckDependencyCycle {
-		id, _ := sp.graph.dag.AddUnchecked(node)
-		sp.graph.needsCheckDependencyCycle = true
+		id, _ := sp.registry.ctors.AddUnchecked(node)
+		sp.registry.needsCheckDependencyCycle = true
 		return id, nil
 	}
 
-	id, _, err := sp.graph.dag.Add(node)
+	id, _, err := sp.registry.ctors.Add(node)
 	if err != nil {
 		if _, ok := errors.AsType[*dag.CycleError[resourceType]](err); !ok {
 			return 0, err
