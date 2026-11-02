@@ -130,7 +130,7 @@ func (sp *Scope) resource(ctor any, opts ResourceOptions) error {
 // Both paths reject a cycle with the same error type, so callers cannot tell
 // which one caught it.
 func (sp *Scope) registerNode(node *constructorNode) (dag.NodeID, error) {
-	if sp.deferCheckDependencyCycle {
+	if sp.cfg.deferCheckDependencyCycle {
 		id, _ := sp.dag.AddUnchecked(node)
 		sp.needsCheckDependencyCycle = true
 		return id, nil

@@ -138,7 +138,7 @@ func (cn *constructorNode) Run() (err error) {
 	// Registered after Args so it only covers the call itself, and last of the
 	// deferred hooks: the callback defer will go above it and rely on this one
 	// running first (LIFO) to see the PanicError.
-	if sp.recoverFromPanics {
+	if sp.cfg.recoverFromPanics {
 		defer func() {
 			if p := recover(); p != nil {
 				err = PanicError{Func: cn.location, Panic: p}
@@ -147,7 +147,7 @@ func (cn *constructorNode) Run() (err error) {
 	}
 
 	staging := newStagingValues()
-	results := sp.fnCaller(reflect.ValueOf(cn.constructor), args)
+	results := sp.cfg.fnCaller(reflect.ValueOf(cn.constructor), args)
 	if err = cn.resultList.StoreResults(staging, false, results); err != nil {
 		return errConstructorFailed{
 			Func:   cn.location,

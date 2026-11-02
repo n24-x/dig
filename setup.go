@@ -73,7 +73,7 @@ func (sp *Scope) Setup(function any, opts ...Option[*SetupOptions]) (err error) 
 	// Registered after the argument assembly so it covers only the user's own
 	// function: everything that could fail before this point reports an error
 	// instead of panicking.
-	if sp.recoverFromPanics {
+	if sp.cfg.recoverFromPanics {
 		defer func() {
 			if p := recover(); p != nil {
 				err = PanicError{Func: digreflect.InspectFunc(function), Panic: p}
@@ -81,7 +81,7 @@ func (sp *Scope) Setup(function any, opts ...Option[*SetupOptions]) (err error) 
 		}()
 	}
 
-	out := sp.fnCaller(fval, args)
+	out := sp.cfg.fnCaller(fval, args)
 
 	err = findError(out)
 	if err != nil {

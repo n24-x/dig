@@ -36,7 +36,7 @@ func DryRun() Option[*Container] {
 		if ct == nil {
 			return
 		}
-		ct.rootScope.fnCaller = dryFnCaller
+		ct.rootScope.cfg.fnCaller = dryFnCaller
 	}
 }
 
@@ -47,7 +47,7 @@ func RecoverFromPanics() Option[*Container] {
 		if ct == nil {
 			return
 		}
-		ct.rootScope.recoverFromPanics = true
+		ct.rootScope.cfg.recoverFromPanics = true
 	}
 }
 
@@ -59,7 +59,7 @@ func DeferAcyclicVerification() Option[*Container] {
 		if ct == nil {
 			return
 		}
-		ct.rootScope.deferCheckDependencyCycle = true
+		ct.rootScope.cfg.deferCheckDependencyCycle = true
 	}
 }
 
