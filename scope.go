@@ -23,11 +23,25 @@ type Scope struct {
 	valueGroups     map[resourceType][]reflect.Value
 	decoratedGroups map[resourceType]reflect.Value
 
-	fnCaller fnCaller
+	// cfg is the whole of what a child takes over from its parent, and nothing
+	// else: it is fixed when the scope is created and only read afterwards.
+	// Keeping it in one struct is what makes the inheritance one assignment, so
+	// a new field cannot be inherited only where somebody remembered to add a
+	// line in NewChildScope.
+	cfg scopeConfig
 
+	needsCheckDependencyCycle bool
+}
+
+// scopeConfig is how user code is called and how its failures are treated.
+//
+// Everything here is inherited by a child scope and never changes after the
+// container is built. A field that a single scope sets and then clears belongs
+// on Scope instead, not here.
+type scopeConfig struct {
+	fnCaller                  fnCaller
 	recoverFromPanics         bool
 	deferCheckDependencyCycle bool
-	needsCheckDependencyCycle bool
 }
 
 // fnCaller produces the results of calling fn with args.
@@ -60,7 +74,7 @@ func newScope() *Scope {
 		valueGroups:     make(map[resourceType][]reflect.Value),
 		decoratedValues: make(map[resourceType]reflect.Value),
 		decoratedGroups: make(map[resourceType]reflect.Value),
-		fnCaller:        defaultFnCaller,
+		cfg:             scopeConfig{fnCaller: defaultFnCaller},
 	}
 }
 
@@ -70,8 +84,7 @@ func newScope() *Scope {
 // the child registers, and neither do sp's other children. sp itself is not
 // modified by this call, so building a tree costs one allocation per node.
 //
-// Only the way user code is called is inherited -- the fnCaller, the panic
-// recovery and the deferred cycle check. Everything a scope stores starts
+// Everything in scopeConfig is inherited. Everything a scope stores starts
 // empty: the graph, the decorators, the values and the groups. That emptiness
 // is what makes a scope private by default; visibility is decided later, when
 // a lookup walks up parentScope, not here.
@@ -92,9 +105,7 @@ func (sp *Scope) NewChildScope(name string) *Scope {
 	child := newScope()
 	child.name = name
 	child.parentScope = sp
-	child.fnCaller = sp.fnCaller
-	child.recoverFromPanics = sp.recoverFromPanics
-	child.deferCheckDependencyCycle = sp.deferCheckDependencyCycle
+	child.cfg = sp.cfg
 	return child
 }
 
