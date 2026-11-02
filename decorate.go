@@ -72,7 +72,7 @@ func (sp *Scope) decorate(dtor any, opts DecorateOptions) error {
 
 func (sp *Scope) registerDecorator(node *decoratorNode, keys []resourceType) {
 	for _, key := range keys {
-		sp.graph.decorators[key] = node
+		sp.registry.dtors[key] = node
 	}
 }
 
@@ -127,7 +127,7 @@ func (sp *Scope) checkDecorate(rs []resourceType) string {
 
 	// scope
 	for _, key := range rs {
-		if _, ok := sp.graph.decorators[key]; ok {
+		if _, ok := sp.registry.dtors[key]; ok {
 			return fmt.Sprintf("type %s already has decorator", key)
 		}
 		if !sp.hasLocalConstructor(key) {

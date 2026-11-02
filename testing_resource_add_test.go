@@ -100,7 +100,7 @@ func TestResourceRejectsDuplicateResources(t *testing.T) {
 			require.ErrorContains(t, err, "cannot add resource")
 
 			// A failed registration must leave the graph untouched.
-			require.Equal(t, tt.wantCount, c.rootScope.graph.dag.Count())
+			require.Equal(t, tt.wantCount, c.rootScope.registry.ctors.Count())
 		})
 	}
 }
@@ -127,7 +127,7 @@ func TestResourceDetectsCycle(t *testing.T) {
 			"the dag-go prefix must be stripped")
 
 		// Add rolled the node back.
-		require.Equal(t, 2, c.rootScope.graph.dag.Count())
+		require.Equal(t, 2, c.rootScope.registry.ctors.Count())
 	})
 
 	t.Run("self cycle", func(t *testing.T) {
@@ -142,7 +142,7 @@ func TestResourceDetectsCycle(t *testing.T) {
 		require.ErrorAs(t, err, &cycleErr)
 		require.ErrorContains(t, err, "cycle detected")
 
-		require.Equal(t, 0, c.rootScope.graph.dag.Count())
+		require.Equal(t, 0, c.rootScope.registry.ctors.Count())
 	})
 }
 
@@ -178,7 +178,7 @@ func TestResourceRejectsInvalidConstructor(t *testing.T) {
 			c := New()
 			err := c.Resource(tt.ctor)
 			require.ErrorContains(t, err, tt.wantErr)
-			require.Equal(t, 0, c.rootScope.graph.dag.Count())
+			require.Equal(t, 0, c.rootScope.registry.ctors.Count())
 		})
 	}
 }
@@ -246,7 +246,7 @@ func TestResourceOptionValidation(t *testing.T) {
 			// Validate runs before the constructor is parsed, so nothing was
 			// registered and the error is not attributed to a constructor.
 			require.NotContains(t, err.Error(), "cannot add resource")
-			require.Equal(t, 0, c.rootScope.graph.dag.Count())
+			require.Equal(t, 0, c.rootScope.registry.ctors.Count())
 		})
 	}
 }
