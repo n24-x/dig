@@ -12,7 +12,10 @@ var (
 	_ func() Option[*Container] = RecoverFromPanics
 	_ func() Option[*Container] = DeferAcyclicVerification
 
-	_ interface{ RootScope() *Scope } = (*Container)(nil)
+	_ interface {
+		RootScope() *Scope
+		Validate() error
+	} = (*Container)(nil)
 )
 
 func New(opts ...Option[*Container]) *Container {

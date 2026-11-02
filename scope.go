@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"math/rand/v2"
 	"reflect"
+	"slices"
+	"strings"
 
 	dag "github.com/n24-x/dag-go"
 )
@@ -28,21 +30,23 @@ type Scope struct {
 	cfg scopeConfig
 }
 
-var _ interface {
-	Setup(function any, opts ...Option[*SetupOptions]) error
-	Validate() error
-	NewChildScope(name string) *Scope
-	lookupRootScope() *Scope
-	lookupValue(resourceType) (reflect.Value, bool)
-	lookupGroup(key resourceType) []reflect.Value
-	lookupConstructor(key resourceType) []*constructorNode
-	hasLocalConstructor(key resourceType) bool
-	lookupDecorator(key resourceType) *decoratorNode
-} = (*Scope)(nil)
+var (
+	_ interface {
+		Setup(function any, opts ...Option[*SetupOptions]) error
+		Validate() error
+		NewChildScope(name string) *Scope
+		lookupRootScope() *Scope
+		lookupValue(resourceType) (reflect.Value, bool)
+		lookupGroup(key resourceType) []reflect.Value
+		lookupConstructor(key resourceType) []*constructorNode
+		hasLocalConstructor(key resourceType) bool
+		lookupDecorator(key resourceType) *decoratorNode
+	} = (*Scope)(nil)
 
-var _ valueWriter = (*Scope)(nil)
+	_ valueWriter = (*Scope)(nil)
 
-var _ func() *Scope = newScope
+	_ func() *Scope = newScope
+)
 
 // scopeStore is what this scope built: the values its constructors returned and
 // the ones its decorators rewrote, each single value and each group.
@@ -111,32 +115,51 @@ func newScope() *Scope {
 	}
 }
 
-// Validate reports the dependencies this scope cannot satisfy.
+// Validate reports what this scope registered but could never build.
 //
-// Every constructor registered here is walked, not only the ones a Setup would
-// reach, so a constructor that nothing asks for yet still has its required
-// dependencies checked. Nothing is run: Validate reads the registry and stops
-// there, so it costs a walk and no user code.
+// Every constructor and every decorator registered here is walked, not only the
+// ones a Setup would reach, so a node that nothing asks for yet still has its
+// required dependencies checked. Nothing is run: Validate reads the registry and
+// stops there, so it costs a walk and no user code.
+//
+// That makes it stricter than running the container. A decorator whose key
+// nobody reads never runs, so a parameter it could not satisfy would sit there
+// harmlessly; Validate reports it anyway, because the container was declared
+// with that decorator in mind.
 //
 // A key is answered the way a reader at this scope would answer it, so a
 // dependency an ancestor provides is satisfied and one a child provides is not.
-// Each constructor's own params are read through its build scope, which is the
-// scope Resource was called on: an exported node is checked where it was
-// written, not where it landed.
-//
-// Decorations are outside the check. A decorator takes parameters, but they are
-// resolved only when something reads the key it takes over, and the walk here
-// never does that: it answers every key with the constructors behind it. So a
-// decorator whose own parameters cannot be satisfied passes Validate and fails
-// at the first read instead.
+// A constructor's params are read through its build scope, the scope Resource
+// was called on, so an exported node is checked where it was written rather
+// than where it landed. A decorator's params are read through the scope it
+// decorates in, which climbs in the same way its own run would.
 func (sp *Scope) Validate() error {
-	w := newConstructorWalk(sp.registry.ctors.Count())
+	w := newKeyWalk(sp.registry.ctors.Count())
+
 	for _, cn := range sp.localConstructors() {
 		if err := w.visit(cn); err != nil {
 			return err
 		}
 	}
+
+	// A decorated key that nothing requires is never reached from the
+	// constructors above, so the decorators are seeded on their own keys.
+	for _, key := range sp.localDecoratorKeys() {
+		if err := w.resolveRequired(sp, key); err != nil {
+			return err
+		}
+	}
+
 	return w.err()
+}
+
+// Validate reports the dependencies the root scope cannot satisfy.
+//
+// A Container is the root scope, and Resource, Setup and Decorate all forward
+// there; this does too. What a child scope registered is not covered -- a scope
+// created by NewChildScope is validated by calling Validate on it.
+func (ct *Container) Validate() error {
+	return ct.rootScope.Validate()
 }
 
 // NewChildScope returns a new scope whose parent is sp.
@@ -329,6 +352,23 @@ func (sp *Scope) localConstructors() []*constructorNode {
 		nodes = append(nodes, sp.registry.ctors.At(dag.NodeID(id)).(*constructorNode))
 	}
 	return nodes
+}
+
+// localDecoratorKeys returns the keys this scope decorates, in a stable order.
+//
+// The decorations live in a map, and the order they come back in is the order a
+// walk would visit them: left unsorted, a walk seeded from this list would
+// report its missing providers, and the path it took through a cycle, in a
+// different order on every run.
+func (sp *Scope) localDecoratorKeys() []resourceType {
+	keys := make([]resourceType, 0, len(sp.registry.dtors))
+	for key := range sp.registry.dtors {
+		keys = append(keys, key)
+	}
+	slices.SortFunc(keys, func(a, b resourceType) int {
+		return strings.Compare(a.String(), b.String())
+	})
+	return keys
 }
 
 // hasLocalConstructor reports whether this scope itself provides key.
