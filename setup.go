@@ -44,14 +44,14 @@ func (sp *Scope) Setup(function any, opts ...Option[*SetupOptions]) (err error) 
 	// graph may still hold a cycle. Verify before anything walks it: keyWalk
 	// would otherwise report the cycle as an internal error, and the point of
 	// deferring is that the user gets the same errCycleDetected either way.
-	if sp.needsCheckDependencyCycle {
-		if err = sp.dag.VerifyAcyclic(); err != nil {
+	if sp.graph.needsCheckDependencyCycle {
+		if err = sp.graph.dag.VerifyAcyclic(); err != nil {
 			return errCycleDetected{
 				Message: "cycle detected",
 				Cause:   err,
 			}
 		}
-		sp.needsCheckDependencyCycle = false
+		sp.graph.needsCheckDependencyCycle = false
 	}
 
 	order, err := sp.runOrder(funcPL)
@@ -102,7 +102,7 @@ type runner interface{ Run() error }
 //
 // See [keyWalk] for how the order is computed.
 func (sp *Scope) runOrder(funcPL paramList) ([]runner, error) {
-	w := newKeyWalk(sp.dag.Count())
+	w := newKeyWalk(sp.graph.dag.Count())
 
 	// The function being set up reads its params from sp, the scope it was
 	// handed to. That is the only view this walk starts with; every node it
