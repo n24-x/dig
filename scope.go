@@ -14,16 +14,11 @@ type Scope struct {
 	name        string
 	parentScope *Scope
 
-	// graph is what the scope was told to build; the tables below it are what
-	// running it produced. Every traversal reads graph and nothing else, so a
-	// walk can see the whole shape of a container before any of it has run.
+	// graph is what the scope was told to build; store is what running it
+	// produced. Every traversal reads graph and nothing else, so a walk can see
+	// the whole shape of a container before any of it has run.
 	graph scopeGraph
-
-	values          map[resourceType]reflect.Value
-	decoratedValues map[resourceType]reflect.Value
-
-	valueGroups     map[resourceType][]reflect.Value
-	decoratedGroups map[resourceType]reflect.Value
+	store scopeStore
 
 	// cfg is the whole of what a child takes over from its parent, and nothing
 	// else: it is fixed when the scope is created and only read afterwards.
@@ -31,6 +26,20 @@ type Scope struct {
 	// a new field cannot be inherited only where somebody remembered to add a
 	// line in NewChildScope.
 	cfg scopeConfig
+}
+
+// scopeStore is what this scope built: the values its constructors returned and
+// the ones its decorators rewrote, each single value and each group.
+//
+// A child scope starts with an empty store and never reads its parent's: a
+// value belongs to the scope whose constructor produced it, and a lookup walks
+// up parentScope to find it rather than merging the tables.
+type scopeStore struct {
+	values          map[resourceType]reflect.Value
+	decoratedValues map[resourceType]reflect.Value
+
+	valueGroups     map[resourceType][]reflect.Value
+	decoratedGroups map[resourceType]reflect.Value
 }
 
 // scopeGraph is the registration state of one scope: the constructors it holds,
@@ -89,11 +98,13 @@ func newScope() *Scope {
 			dag:        dag.New[resourceType](),
 			decorators: make(map[resourceType]*decoratorNode),
 		},
-		values:          make(map[resourceType]reflect.Value),
-		valueGroups:     make(map[resourceType][]reflect.Value),
-		decoratedValues: make(map[resourceType]reflect.Value),
-		decoratedGroups: make(map[resourceType]reflect.Value),
-		cfg:             scopeConfig{fnCaller: defaultFnCaller},
+		store: scopeStore{
+			values:          make(map[resourceType]reflect.Value),
+			decoratedValues: make(map[resourceType]reflect.Value),
+			valueGroups:     make(map[resourceType][]reflect.Value),
+			decoratedGroups: make(map[resourceType]reflect.Value),
+		},
+		cfg: scopeConfig{fnCaller: defaultFnCaller},
 	}
 }
 
@@ -103,10 +114,10 @@ func newScope() *Scope {
 // the child registers, and neither do sp's other children. sp itself is not
 // modified by this call, so building a tree costs one allocation per node.
 //
-// Everything in scopeConfig is inherited. Everything a scope stores starts
-// empty: the graph, the decorators, the values and the groups. That emptiness
-// is what makes a scope private by default; visibility is decided later, when
-// a lookup walks up parentScope, not here.
+// Everything in scopeConfig is inherited. Both the graph and the store start
+// empty -- no constructors, no decorations, no values -- and that emptiness is
+// what makes a scope private by default; visibility is decided later, when a
+// lookup walks up parentScope, not here.
 //
 // NewChildScope panics when name is empty or is the root scope's name.
 // Diagnostics print scope names, so a nameless scope would carry no label at
@@ -222,10 +233,10 @@ func (sp *Scope) lookupDecorator(key resourceType) *decoratorNode {
 // through it.
 func (sp *Scope) lookupValue(typ resourceType) (reflect.Value, bool) {
 	for s := sp; s != nil; s = s.parentScope {
-		if v, ok := s.decoratedValues[typ]; ok {
+		if v, ok := s.store.decoratedValues[typ]; ok {
 			return v, true
 		}
-		if v, ok := s.values[typ]; ok {
+		if v, ok := s.store.values[typ]; ok {
 			return v, true
 		}
 	}
@@ -272,13 +283,13 @@ func (sp *Scope) lookupGroup(key resourceType) []reflect.Value {
 		return out
 	}
 
-	if whole, ok := sp.decoratedGroups[key]; ok {
+	if whole, ok := sp.store.decoratedGroups[key]; ok {
 		return spread(whole)
 	}
 
 	var members []reflect.Value
 	for s := sp; s != nil; s = s.parentScope {
-		members = append(members, s.valueGroups[key]...)
+		members = append(members, s.store.valueGroups[key]...)
 	}
 	return shuffledCopy(members)
 }
@@ -288,20 +299,20 @@ func (sp *Scope) lookupGroup(key resourceType) []reflect.Value {
 // Overwriting is safe: checkResource rejects duplicate non-group keys at
 // registration time, so at most one node ever writes a given key.
 func (sp *Scope) setValue(key resourceType, v reflect.Value) {
-	sp.values[key] = v
+	sp.store.values[key] = v
 }
 
 // setDecoratedValue records what a decorator produced for key.
 func (sp *Scope) setDecoratedValue(key resourceType, v reflect.Value) {
-	sp.decoratedValues[key] = v
+	sp.store.decoratedValues[key] = v
 }
 
 // submitGroupValue adds one member to the group stored under key.
 func (sp *Scope) submitGroupValue(key resourceType, v reflect.Value) {
-	sp.valueGroups[key] = append(sp.valueGroups[key], v)
+	sp.store.valueGroups[key] = append(sp.store.valueGroups[key], v)
 }
 
 // submitDecoratedGroup replaces the whole group stored under key with slice.
 func (sp *Scope) submitDecoratedGroup(key resourceType, slice reflect.Value) {
-	sp.decoratedGroups[key] = slice
+	sp.store.decoratedGroups[key] = slice
 }
