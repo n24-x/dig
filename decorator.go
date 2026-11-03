@@ -19,12 +19,14 @@ type decoratorNode struct {
 	observer   Observer
 }
 
-var _ interface {
-	fmt.Stringer
-	runner
-} = (*decoratorNode)(nil)
+var (
+	_ interface {
+		fmt.Stringer
+		runner
+	} = (*decoratorNode)(nil)
 
-var _ func(any, *Scope) (*decoratorNode, error) = newDecoratorNode
+	_ func(any, *Scope) (*decoratorNode, error) = newDecoratorNode
+)
 
 // newDecoratorNode parses dtor into a decorator node bound to sp.
 //
