@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/n24-x/dot-go"
+	dot "github.com/n24-x/dot-go"
 )
 
 // valueResultGroup is a value produced by a constructor that is part of a

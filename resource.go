@@ -6,9 +6,9 @@ import (
 	"reflect"
 
 	"github.com/n24-x/dig/internal/digreflect"
-	"github.com/n24-x/dot-go"
 
 	dag "github.com/n24-x/dag-go"
+	dot "github.com/n24-x/dot-go"
 )
 
 var (

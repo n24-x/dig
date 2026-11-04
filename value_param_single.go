@@ -5,7 +5,7 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/n24-x/dot-go"
+	dot "github.com/n24-x/dot-go"
 )
 
 type valueParam struct {

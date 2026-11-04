@@ -3,8 +3,6 @@ package dig
 import (
 	"fmt"
 	"reflect"
-
-	_ "github.com/n24-x/dag-go"
 )
 
 // DagID uniquely identifies a constructor within a DAG.

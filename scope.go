@@ -177,11 +177,11 @@ func (ct *Container) Validate() error {
 // Diagnostics print scope names, so a nameless scope would carry no label at
 // all, and a second scope answering to "root" would make that label ambiguous.
 func (sp *Scope) NewChildScope(name string) *Scope {
-	switch {
-	case name == "":
+	switch name {
+	case "":
 		panic("dig: NewChildScope: the name must not be empty, it labels the " +
 			"scope in diagnostics")
-	case name == _rootScopeName:
+	case _rootScopeName:
 		panic(fmt.Sprintf(
 			"dig: NewChildScope(%q): that name is reserved for the root scope", name))
 	}
