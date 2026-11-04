@@ -98,7 +98,7 @@ func (dn *decoratorNode) Run() (err error) {
 		}()
 	}
 
-	if dn.scope.cfg.recoverFromPanics {
+	if dn.scope.globalCfg.recoverFromPanics {
 		defer func() {
 			if p := recover(); p != nil {
 				err = PanicError{Func: dn.location, Panic: p}
@@ -107,7 +107,7 @@ func (dn *decoratorNode) Run() (err error) {
 	}
 
 	staging := newStagingValues()
-	results := dn.scope.cfg.fnCaller(reflect.ValueOf(dn.decorator), args)
+	results := dn.scope.globalCfg.fnCaller(reflect.ValueOf(dn.decorator), args)
 	if err = dn.resultList.StoreResults(staging, true, results); err != nil {
 		return errDecorateFailed{Func: dn.location, Reason: err}
 	}
