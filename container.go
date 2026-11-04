@@ -1,5 +1,7 @@
 package dig
 
+import dot "github.com/n24-x/dot-go"
+
 // A Container is the root Scope that represents the top-level scope.
 type Container struct {
 	rootScope *Scope
@@ -7,10 +9,10 @@ type Container struct {
 
 var (
 	_ func(opts ...Option[*Container]) *Container = New
-
-	_ func() Option[*Container] = DryRun
-	_ func() Option[*Container] = RecoverFromPanics
-	_ func() Option[*Container] = DeferAcyclicVerification
+	_ func() Option[*Container]                   = DryRun
+	_ func() Option[*Container]                   = RecoverFromPanics
+	_ func() Option[*Container]                   = DeferAcyclicVerification
+	_ func(*dot.Graph) Option[*Container]         = FullDotGraph
 
 	_ interface {
 		RootScope() *Scope
@@ -39,7 +41,7 @@ func DryRun() Option[*Container] {
 		if ct == nil {
 			return
 		}
-		ct.rootScope.cfg.fnCaller = dryFnCaller
+		ct.rootScope.globalCfg.fnCaller = dryFnCaller
 	}
 }
 
@@ -50,7 +52,7 @@ func RecoverFromPanics() Option[*Container] {
 		if ct == nil {
 			return
 		}
-		ct.rootScope.cfg.recoverFromPanics = true
+		ct.rootScope.globalCfg.recoverFromPanics = true
 	}
 }
 
@@ -62,7 +64,16 @@ func DeferAcyclicVerification() Option[*Container] {
 		if ct == nil {
 			return
 		}
-		ct.rootScope.cfg.deferCheckDependencyCycle = true
+		ct.rootScope.globalCfg.deferCheckDependencyCycle = true
+	}
+}
+
+func FullDotGraph(g *dot.Graph) Option[*Container] {
+	return func(ct *Container) {
+		if ct == nil {
+			return
+		}
+		ct.rootScope.globalCfg.fullDotGraph = g
 	}
 }
 

@@ -14,6 +14,10 @@ var (
 	_ func(io.Writer, int, *dot.Constructor) = visualizeConstructor
 )
 
+func PrintDot(w io.Writer, dg *dot.Graph) {
+	visualizeGraph(w, dg)
+}
+
 func visualizeGraph(w io.Writer, dg *dot.Graph) {
 	_, _ = w.Write([]byte("digraph {\n\trankdir=RL;\n\tgraph [compound=true];\n"))
 	for _, g := range dg.Groups {

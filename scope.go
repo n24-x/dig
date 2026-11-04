@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	dag "github.com/n24-x/dag-go"
+	dot "github.com/n24-x/dot-go"
 )
 
 const _rootScopeName = "root"
@@ -22,19 +23,33 @@ type Scope struct {
 	registry scopeRegistry
 	store    scopeStore
 
-	// cfg is the whole of what a child takes over from its parent, and nothing
-	// else: it is fixed when the scope is created and only read afterwards.
-	// Keeping it in one struct is what makes the inheritance one assignment, so
-	// a new field cannot be inherited only where somebody remembered to add a
-	// line in NewChildScope.
-	cfg scopeConfig
+	// globalCfg is everything a child takes over from its parent: how user
+	// code is called, how its failures are treated, and where the container's
+	// diagnostic graph is recorded. Assigning the whole struct in
+	// NewChildScope is what makes the inheritance one line, so a field cannot
+	// be inherited only where somebody remembered to add it.
+	//
+	// Everything here is fixed at creation and only read afterwards. A field
+	// that a single scope sets and then clears is state and belongs on
+	// scopeRegistry; a field a child must not inherit does not belong here
+	// either, because staying out of this struct is the only thing that keeps
+	// it from being inherited by accident.
+	globalCfg scopeGlobalConfig
+
+	// localDotGraph is the diagnostic graph this scope records into for its own
+	// view, if any. It sits outside globalCfg because it is deliberately not
+	// inherited: a child starts with none, and only LocalDotGraph gives it one.
+	// The graph the whole container shares is globalCfg.fullDotGraph; the two
+	// are separate records of the same registrations, one per scope and one for
+	// the tree.
+	localDotGraph *dot.Graph
 }
 
 var (
 	_ interface {
 		Setup(function any, opts ...Option[*SetupOptions]) error
 		Validate() error
-		NewChildScope(name string) *Scope
+		NewChildScope(opts ...Option[*ScopeOptions]) *Scope
 		lookupRootScope() *Scope
 		lookupValue(resourceType) (reflect.Value, bool)
 		lookupGroup(key resourceType) []reflect.Value
@@ -45,7 +60,9 @@ var (
 
 	_ valueWriter = (*Scope)(nil)
 
-	_ func() *Scope = newScope
+	_ func() *Scope                             = newScope
+	_ func(string) Option[*ScopeOptions]        = ScopeName
+	_ func(dg *dot.Graph) Option[*ScopeOptions] = LocalDotGraph
 )
 
 // scopeStore is what this scope built: the values its constructors returned and
@@ -77,19 +94,28 @@ type scopeRegistry struct {
 
 	// needsCheckDependencyCycle reports that a constructor went in unchecked
 	// since the last whole-graph scan. Registration sets it and Setup clears it,
-	// so it belongs to one scope rather than to scopeConfig.
+	// so it belongs to one scope rather than to scopeGlobalConfig.
 	needsCheckDependencyCycle bool
 }
 
-// scopeConfig is how user code is called and how its failures are treated.
+// scopeGlobalConfig is how user code is called, how its failures are treated,
+// and where the container-wide diagnostic graph is recorded.
 //
-// Everything here is inherited by a child scope and never changes after the
-// container is built. A field that a single scope sets and then clears is state
-// rather than configuration, and belongs on scopeRegistry instead.
-type scopeConfig struct {
+// Everything here is inherited by a child scope, and it never changes after the
+// scope is created. The graph is shared rather than copied: it is append-only,
+// so one pointer lets the whole tree add to the same record, and a reader can
+// follow a value across the scope that built it and the one that exported it.
+//
+// Two kinds of field do not belong here. One that a single scope sets and then
+// clears is state, and goes on scopeRegistry. One that a child must not inherit
+// goes on Scope directly: not being part of the assignment NewChildScope makes
+// is how that is expressed, whereas a field here would need a line to undo the
+// inheritance it just received.
+type scopeGlobalConfig struct {
 	fnCaller                  fnCaller
 	recoverFromPanics         bool
 	deferCheckDependencyCycle bool
+	fullDotGraph              *dot.Graph
 }
 
 // fnCaller produces the results of calling fn with args.
@@ -111,7 +137,7 @@ func newScope() *Scope {
 			valueGroups:     make(map[resourceType][]reflect.Value),
 			decoratedGroups: make(map[resourceType]reflect.Value),
 		},
-		cfg: scopeConfig{fnCaller: defaultFnCaller},
+		globalCfg: scopeGlobalConfig{fnCaller: defaultFnCaller},
 	}
 }
 
@@ -168,29 +194,62 @@ func (ct *Container) Validate() error {
 // the child registers, and neither do sp's other children. sp itself is not
 // modified by this call, so building a tree costs one allocation per node.
 //
-// Everything in scopeConfig is inherited. Both the registry and the store start
-// empty -- no constructors, no decorations, no values -- and that emptiness is
-// what makes a scope private by default; visibility is decided later, when a
-// lookup walks up parentScope, not here.
+// Everything in scopeGlobalConfig is inherited. The graph in localDotGraph is
+// not: a child starts with none and only LocalDotGraph gives it one, because a
+// shared graph would file two scopes' providers under the same key.
 //
-// NewChildScope panics when name is empty or is the root scope's name.
-// Diagnostics print scope names, so a nameless scope would carry no label at
-// all, and a second scope answering to "root" would make that label ambiguous.
-func (sp *Scope) NewChildScope(name string) *Scope {
-	switch name {
+// Both the registry and the store start empty -- no constructors, no
+// decorations, no values -- and that emptiness is what makes a scope private by
+// default; visibility is decided later, when a lookup walks up parentScope, not
+// here.
+//
+// NewChildScope panics when no ScopeName is given, or when the name is the root
+// scope's. Diagnostics print scope names, so an unnamed scope would carry no
+// label at all, and a second scope answering to "root" would make that label
+// ambiguous.
+func (sp *Scope) NewChildScope(opts ...Option[*ScopeOptions]) *Scope {
+	var options ScopeOptions
+	for _, fn := range opts {
+		fn(&options)
+	}
+
+	switch options.name {
 	case "":
 		panic("dig: NewChildScope: the name must not be empty, it labels the " +
 			"scope in diagnostics")
 	case _rootScopeName:
 		panic(fmt.Sprintf(
-			"dig: NewChildScope(%q): that name is reserved for the root scope", name))
+			"dig: NewChildScope(%q): that name is reserved for the root scope", options.name))
 	}
 
 	child := newScope()
-	child.name = name
+	child.name = options.name
 	child.parentScope = sp
-	child.cfg = sp.cfg
+	child.globalCfg = sp.globalCfg
+
+	if options.localDotGraph != nil {
+		child.localDotGraph = options.localDotGraph
+	}
+
 	return child
+}
+
+func ScopeName(name string) Option[*ScopeOptions] {
+	return func(so *ScopeOptions) {
+		if so == nil {
+			return
+		}
+		so.name = name
+	}
+}
+
+func LocalDotGraph(dg *dot.Graph) Option[*ScopeOptions] {
+	return func(so *ScopeOptions) {
+		if so == nil {
+			return
+		}
+		so.localDotGraph = dg
+	}
 }
 
 // lookupRootScope returns the top of the tree sp belongs to: the scope whose

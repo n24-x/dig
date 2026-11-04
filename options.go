@@ -6,9 +6,16 @@ import (
 	"strings"
 
 	"github.com/n24-x/dig/internal/digreflect"
+
+	dot "github.com/n24-x/dot-go"
 )
 
 type Option[T any] func(T)
+
+type ScopeOptions struct {
+	name          string
+	localDotGraph *dot.Graph
+}
 
 // ConstructorOptions carries the settings that shape a parsed constructorNode.
 // See [Option] for more info.
