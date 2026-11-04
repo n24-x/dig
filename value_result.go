@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/n24-x/dot-go"
+	dot "github.com/n24-x/dot-go"
 )
 
 // The result interface represents a result produced by a constructor.

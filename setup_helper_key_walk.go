@@ -3,7 +3,7 @@ package dig
 import (
 	"fmt"
 
-	"github.com/n24-x/dag-go"
+	dag "github.com/n24-x/dag-go"
 )
 
 type nodeColor uint8

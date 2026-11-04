@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/n24-x/dot-go"
+	dot "github.com/n24-x/dot-go"
 )
 
 // param is one argument of a function, resolved against a scope.

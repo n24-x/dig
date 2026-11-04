@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/n24-x/dot-go"
+	dot "github.com/n24-x/dot-go"
 )
 
 // valueResult is an explicit value produced by a constructor, optionally
