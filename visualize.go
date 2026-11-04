@@ -5,7 +5,7 @@ import (
 	"io"
 	"strconv"
 
-	"github.com/n24-x/dig/internal/dot"
+	"github.com/n24-x/dot-go"
 )
 
 var (

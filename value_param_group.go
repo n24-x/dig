@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/n24-x/dig/internal/dot"
+	"github.com/n24-x/dot-go"
 )
 
 // valueParamGroup is a param which produces a slice of values with the same

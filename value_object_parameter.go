@@ -5,7 +5,7 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/n24-x/dig/internal/dot"
+	"github.com/n24-x/dot-go"
 )
 
 // parameterObject is a parameter struct where each field is another param.
